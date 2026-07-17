@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AtoZ Sound Journal</title>
+<meta name="description" content="AtoZ Sound Journal — 音楽の営みに、敬意を。― プロの現場から届ける読み物">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site-header">
+  <a class="site-title" href="index.html">AtoZ<span>Sound Journal</span></a>
+  <p class="site-tagline">音楽の営みに、敬意を。― プロの現場から届ける読み物</p>
+</header>
+<main class="container">
+
+<div class="tag-filters" id="tagFilters"><button class="tag-filter active" data-tag="">すべて</button><button class="tag-filter" data-tag="お知らせ">お知らせ</button></div>
+<div class="cards" id="cards">
+
+  <a class="card" href="articles/2026-07-18-test-site-opening.html" data-tags='[&quot;お知らせ&quot;]'>
+    
+    <h2>AtoZ Sound Journal 開設準備中 — このサイトについて</h2>
+    <p class="card-desc">AtoZ Sound Journal は、プロの制作現場の知識を根幹に、音楽の歴史と文化への敬意を込めて届ける読み物サイトです。現在、公開に向けて準備を進めています。</p>
+    <div class="card-meta"><time>2026-07-18</time><div class="tags"><a class="tag" href="index.html?tag=お知らせ">お知らせ</a></div></div>
+  </a>
+</div>
+<script>
+(function() {
+  var buttons = document.querySelectorAll('.tag-filter');
+  var cards = document.querySelectorAll('.card');
+  function apply(tag) {
+    buttons.forEach(function(b) { b.classList.toggle('active', b.dataset.tag === tag); });
+    cards.forEach(function(c) {
+      var tags = JSON.parse(c.dataset.tags || '[]');
+      c.style.display = (!tag || tags.indexOf(tag) !== -1) ? '' : 'none';
+    });
+  }
+  buttons.forEach(function(b) {
+    b.addEventListener('click', function() { apply(b.dataset.tag); });
+  });
+  var params = new URLSearchParams(location.search);
+  var t = params.get('tag');
+  if (t) apply(t);
+})();
+</script>
+
+</main>
+<footer class="site-footer">
+  <p>AtoZ Studio / AtoZ DTM School（高田馬場・荻窪・芦花公園）</p>
+  <p class="footer-note">プロの制作現場の知識を根幹に、音楽の歴史と文化への敬意を込めてお届けします。</p>
+</footer>
+</body>
+</html>
