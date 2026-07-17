@@ -217,12 +217,12 @@ def build_index(articles):
         desc = a["description"][:90] + ("…" if len(a["description"]) > 90 else "")
         date_html = f'<time>{esc(a["date"])}</time>' if a["date"] else ""
         cards.append(f"""
-  <a class="card" href="articles/{a['slug']}.html" data-tags='{tags_attr}'>
+  <article class="card" data-tags='{tags_attr}'>
     {series_line}
-    <h2>{esc(a["title"])}</h2>
+    <h2><a href="articles/{a['slug']}.html">{esc(a["title"])}</a></h2>
     <p class="card-desc">{esc(desc)}</p>
     <div class="card-meta">{date_html}<div class="tags">{tag_chips(a["tags"])}</div></div>
-  </a>""")
+  </article>""")
     cards_html = "\n".join(cards) if cards else '<p class="empty">記事は準備中です。</p>'
     content = f"""
 <div class="tag-filters" id="tagFilters">{tag_buttons}</div>
