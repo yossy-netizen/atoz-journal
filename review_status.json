@@ -1,0 +1,4 @@
+{
+  "_comment": "精査・承認状態の正本。精査サポートタスク（木曜）とレビューリマインダー（金曜）が読み書きする。articles[].states: review_report_sent=精査レポート送付日 / approved=阿藤さん承認日 / copied_to_02_1=02-1へのコピー実行日",
+  "articles": []
+}
