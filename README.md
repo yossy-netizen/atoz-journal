@@ -1,6 +1,7 @@
 # AtoZ Sound Journal（暫定サイト）
 
 AtoZ DTM School / AtoZ Studio の読み物サイト「AtoZ Sound Journal」の暫定リポジトリ。
+公開URL: **https://journal.atoz-studio.com/**（独自ドメイン・docs/CNAMEで管理）
 正式サイト（Claude Codeで構築予定）への移行までの間、公開ワークフローの確立と運用を担う。
 
 ## 仕組み
