@@ -1,21 +1,68 @@
 {
- "updated_at": "2026-07-19 23:45 JST",
- "updated_by": "初期セットアップ（Cowork）",
- "summary": {"draft_count": 22},
+ "updated_at": "2026-07-20 09:13 JST",
+ "updated_by": "AtoZ Journal 自動投稿",
+ "summary": {
+  "draft_count": 22
+ },
  "titles": {},
  "pending_review": [],
  "roadmap": [
-  {"tag": "第1波", "text": "A-1「AtoZ Sound Journalとは」/ A-2「8原則の宣言」— サイトの顔となるマニフェスト記事（チャット側Claudeと制作中）", "current": true},
-  {"tag": "第2波", "text": "既存完成稿22本（ハーモニー9・ベース5・グルーヴ6・テイスト1・宅録1）の精査・公開 + B-3/B-6", "current": true},
-  {"tag": "第3波", "text": "Layer B（8原則の個別解説記事・全8本）を完備", "current": false},
-  {"tag": "第4波", "text": "シリーズ拡充（C-3 音楽を味わう / C-4 ミックス4主役の歴史 / C-5 3系統 / C-6 業界構造）", "current": false},
-  {"tag": "第5波", "text": "mizonote 591記事のリライト（1〜3年計画）", "current": false},
-  {"tag": "正式サイト", "text": "Claude Codeで正式サイト構築 → journal.atoz-studio.com のまま移行（URL不変）", "current": false},
-  {"tag": "多言語", "text": "Phase1: 日本語で記事蓄積（現在） → Phase2: 正式サイトに多言語構造 → Phase3: 記事30〜50本後に英語で需要計測 → 中国語を優先展開 → アジア各国", "current": false}
+  {
+   "tag": "第1波",
+   "text": "A-1「AtoZ Sound Journalとは」/ A-2「8原則の宣言」— サイトの顔となるマニフェスト記事（チャット側Claudeと制作中）",
+   "current": true
+  },
+  {
+   "tag": "第2波",
+   "text": "既存完成稿22本（ハーモニー9・ベース5・グルーヴ6・テイスト1・宅録1）の精査・公開 + B-3/B-6",
+   "current": true
+  },
+  {
+   "tag": "第3波",
+   "text": "Layer B（8原則の個別解説記事・全8本）を完備",
+   "current": false
+  },
+  {
+   "tag": "第4波",
+   "text": "シリーズ拡充（C-3 音楽を味わう / C-4 ミックス4主役の歴史 / C-5 3系統 / C-6 業界構造）",
+   "current": false
+  },
+  {
+   "tag": "第5波",
+   "text": "mizonote 591記事のリライト（1〜3年計画）",
+   "current": false
+  },
+  {
+   "tag": "正式サイト",
+   "text": "Claude Codeで正式サイト構築 → journal.atoz-studio.com のまま移行（URL不変）",
+   "current": false
+  },
+  {
+   "tag": "多言語",
+   "text": "Phase1: 日本語で記事蓄積（現在） → Phase2: 正式サイトに多言語構造 → Phase3: 記事30〜50本後に英語で需要計測 → 中国語を優先展開 → アジア各国",
+   "current": false
+  }
  ],
  "changelog": [
-  {"date": "2026-07-19", "by": "Cowork", "event": "運用ダッシュボード構築（承認エリア・進捗・ロードマップ・更新履歴）。二段階承認フロー導入、4タスク体制に"},
-  {"date": "2026-07-19", "by": "Cowork", "event": "独自ドメイン journal.atoz-studio.com 開通（SSL・HTTPS強制済み）"},
-  {"date": "2026-07-18", "by": "Cowork", "event": "暫定サイト公開（GitHub Pages）。記事作成→承認→自動公開のワークフロー確立"}
+  {
+   "date": "2026-07-20",
+   "by": "自動投稿",
+   "event": "定時実行（月曜9時）: ダッシュボード承認・修正要望なし、02-1（公開待ち）が空のため公開見送り。現況: 公開待ち0本・判断待ち0本・精査前22本（承認をお待ちしています）"
+  },
+  {
+   "date": "2026-07-19",
+   "by": "Cowork",
+   "event": "運用ダッシュボード構築（承認エリア・進捗・ロードマップ・更新履歴）。二段階承認フロー導入、4タスク体制に"
+  },
+  {
+   "date": "2026-07-19",
+   "by": "Cowork",
+   "event": "独自ドメイン journal.atoz-studio.com 開通（SSL・HTTPS強制済み）"
+  },
+  {
+   "date": "2026-07-18",
+   "by": "Cowork",
+   "event": "暫定サイト公開（GitHub Pages）。記事作成→承認→自動公開のワークフロー確立"
+  }
  ]
 }
