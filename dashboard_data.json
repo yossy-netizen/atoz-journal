@@ -1,8 +1,8 @@
 {
- "updated_at": "2026-07-23 09:20 JST",
- "updated_by": "AtoZ Journal 自動投稿",
+ "updated_at": "2026-07-23 10:18 JST",
+ "updated_by": "AtoZ Journal 精査サポート",
  "summary": {
-  "draft_count": 22
+  "draft_count": 17
  },
  "titles": {
   "harmony_series_08.md": "アボイドが、いちばんの個性になる ― リディアン・ドミナントの正体",
@@ -23,9 +23,47 @@
   "bass_series_03.md": "アコースティックベースは、背丈の大きさに聴こえていますか？",
   "bass_series_05.md": "耳の穴では聴こえない ― 低音を体全体で受け取る",
   "taste_series_01.md": "音楽を本当に味わうために",
-  "groove_series_05.md": "機械のズレを人間が学ぶ ― テクノロジーがグルーヴをアップデートした瞬間"
+  "groove_series_05.md": "機械のズレを人間が学ぶ ― テクノロジーがグルーヴをアップデートした瞬間",
+  "groove_series_01.md": "リズムの絵の具を増やそう ― グルーヴとは何か",
+  "groove_series_03.md": "ストレートでもスウィングでもない ― J Dillaが見つけた「グレーゾーン」"
  },
- "pending_review": [],
+ "pending_review": [
+  {
+   "file": "groove_series_01.md",
+   "title": "リズムの絵の具を増やそう ― グルーヴとは何か",
+   "drive_link": "https://drive.google.com/file/d/1e4IkCrjMF4JqJbgzR-WIUxGCi_ZoJSMW/view?usp=drivesdk",
+   "verdict": "公開推奨",
+   "report_summary": "第一声が肯定で開始・原則1/6/7と整合。個人情報なし。事実関係OK。シリーズ導入として完成度高く、最初の公開に最適。フロントマター(description/タグ)無しは公開時に自動投稿が補完。"
+  },
+  {
+   "file": "groove_series_02.md",
+   "title": "同じリズムが別物になる ― スネアの位置を動かすだけで",
+   "drive_link": "https://drive.google.com/file/d/1D29LAQNwACmIWNuvWCKRJJHefcXnoLVE/view?usp=drivesdk",
+   "verdict": "要修正（軽微）",
+   "report_summary": "本文は公開品質（個人情報なし・Headhunters/ポール・ジャクソン&マイク・クラークの記述OK）。第1回への参照が「(リンク)」プレースホルダーのまま1箇所→groove-series-01.htmlへの差し替えかテキスト化が必要。"
+  },
+  {
+   "file": "groove_series_03.md",
+   "title": "ストレートでもスウィングでもない ― J Dillaが見つけた「グレーゾーン」",
+   "drive_link": "https://drive.google.com/file/d/1uY90tKHC1XRWstJDdq8EF1iPp_E0NrNS/view?usp=drivesdk",
+   "verdict": "要修正（軽微）",
+   "report_summary": "J Dillaの経歴・グレーゾーン解説は正確、個人情報なし。第1回・第2回への「(リンク)」プレースホルダー2箇所の差し替えが必要。Buckner動画由来の用語(Strung/Rub)は出典明記済みで問題なし。"
+  },
+  {
+   "file": "groove_series_04.md",
+   "title": "1拍目に命を懸ける ― ジェームス・ブラウンの「The One」",
+   "drive_link": "https://drive.google.com/file/d/16662n54DvOz9ysyy4Pf9W9wqniU1ByFT/view?usp=drivesdk",
+   "verdict": "要修正（軽微）",
+   "report_summary": "JB史実OK（ブーツィー1970年加入・Mr. Dynamite 2014等）、個人情報なし。誤記1件:「音楽監督（MQ）」→正しくは（MD）。「(リンク)」プレースホルダー3箇所。バックビート→The Oneの説明はやや単純化だが許容範囲。"
+  },
+  {
+   "file": "groove_series_05.md",
+   "title": "機械のズレを人間が学ぶ ― テクノロジーがグルーヴをアップデートした瞬間",
+   "drive_link": "https://drive.google.com/file/d/1Bim3Nw3qglYHED5Ry7Fw3jLUKjOiCblT/view?usp=drivesdk",
+   "verdict": "要修正（軽微）",
+   "report_summary": "個人情報なし。Voodoo/Electric Lady/Soulquarians等の記述OK。「(リンク)」プレースホルダー4箇所。クエストラブ×ボブ・パワーの逸話は出典動画(RBMA)での語りの確認を推奨（一般に伝わる形と語り手が異なる可能性）。約5,400字とやや長め（許容）。"
+  }
+ ],
  "roadmap": [
   {
    "tag": "第1波",
@@ -64,6 +102,11 @@
   }
  ],
  "changelog": [
+  {
+   "date": "2026-07-23",
+   "by": "精査サポート",
+   "event": "定時実行（木曜10時）: グルーヴ・シリーズ第1〜5回の精査レポートを送付し承認依頼。所見: 第1回=公開推奨、第2〜5回=要修正（軽微・シリーズ内リンクのプレースホルダー等。指示があれば修正版_v2を作成します）。残り精査待ち17本は次回木曜に処理。ダッシュボード承認・修正要望なし（承認箱は空）"
+  },
   {
    "date": "2026-07-23",
    "by": "自動投稿",
