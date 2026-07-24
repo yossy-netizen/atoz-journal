@@ -1,128 +1,128 @@
 {
-  "_comment": "精査・承認状態の正本。精査サポートタスク（木曜）とレビューリマインダー（金曜）が読み書きする。articles[].states: review_report_sent=精査レポート送付日 / approved=阿藤さん承認日 / copied_to_02_1=02-1へのコピー実行日",
+  "_comment": "精査・承認状態の正本。精査サポートタスク（木曜）とレビューリマインダー（金曜）が読み書きする。articles[].states: review_report_sent=精査レポート送付日 / approved=阿藤さん承認日 / copied_to_02_1=02-1へのコピー実行日。2026-07-24: 全記事を文体改稿＋フッター確定の_v4に移行。source_file/drive_file_idは_v4を指す（旧版は掃除対象）。既存のverdict/report_summaryは内容を保持した改稿のため実質有効だが、リンク系プレースホルダー等の指摘は_v4でも要確認。",
   "articles": [
     {
-      "source_file": "groove_series_01.md",
-      "drive_file_id": "1e4IkCrjMF4JqJbgzR-WIUxGCi_ZoJSMW",
+      "source_file": "groove_series_01_v4.md",
+      "drive_file_id": "1T_WSgBHKQBT-yJwo-iUnFNB1_2Ox1Zcy",
       "title": "リズムの絵の具を増やそう ― グルーヴとは何か",
       "review_report_sent": "2026-07-23",
       "verdict": "公開推奨",
       "report_summary": "第一声が肯定で開始・原則1/6/7と整合。個人情報なし。事実関係OK。シリーズ導入として完成度高く、最初の公開に最適。フロントマター(description/タグ)無しは公開時に自動投稿が補完。"
     },
     {
-      "source_file": "groove_series_02.md",
-      "drive_file_id": "1D29LAQNwACmIWNuvWCKRJJHefcXnoLVE",
+      "source_file": "groove_series_02_v4.md",
+      "drive_file_id": "1Xoi-8JiA58jmhgLmDRm1WMG9cxQq6FvC",
       "title": "同じリズムが別物になる ― スネアの位置を動かすだけで",
       "review_report_sent": "2026-07-23",
       "verdict": "要修正（軽微）",
       "report_summary": "本文は公開品質（個人情報なし・Headhunters/ポール・ジャクソン&マイク・クラークの記述OK）。第1回への参照が「(リンク)」プレースホルダーのまま1箇所→groove-series-01.htmlへの差し替えかテキスト化が必要。"
     },
     {
-      "source_file": "groove_series_03.md",
-      "drive_file_id": "1uY90tKHC1XRWstJDdq8EF1iPp_E0NrNS",
+      "source_file": "groove_series_03_v4.md",
+      "drive_file_id": "1bWBrPAsp0n7_uOCYDOnRCOXByPLKW5hS",
       "title": "ストレートでもスウィングでもない ― J Dillaが見つけた「グレーゾーン」",
       "review_report_sent": "2026-07-23",
       "verdict": "要修正（軽微）",
       "report_summary": "J Dillaの経歴・グレーゾーン解説は正確、個人情報なし。第1回・第2回への「(リンク)」プレースホルダー2箇所の差し替えが必要。Buckner動画由来の用語(Strung/Rub)は出典明記済みで問題なし。"
     },
     {
-      "source_file": "groove_series_04.md",
-      "drive_file_id": "16662n54DvOz9ysyy4Pf9W9wqniU1ByFT",
+      "source_file": "groove_series_04_v4.md",
+      "drive_file_id": "1Oc1Dhy5A7Bd5sk8UI5Rp7r97fDRGNPum",
       "title": "1拍目に命を懸ける ― ジェームス・ブラウンの「The One」",
       "review_report_sent": "2026-07-23",
       "verdict": "要修正（軽微）",
       "report_summary": "JB史実OK（ブーツィー1970年加入・Mr. Dynamite 2014等）、個人情報なし。誤記1件:「音楽監督（MQ）」→正しくは（MD）。「(リンク)」プレースホルダー3箇所。バックビート→The Oneの説明はやや単純化だが許容範囲。"
     },
     {
-      "source_file": "groove_series_05.md",
-      "drive_file_id": "1Bim3Nw3qglYHED5Ry7Fw3jLUKjOiCblT",
+      "source_file": "groove_series_05_v4.md",
+      "drive_file_id": "1EeXHE9pAjBBfE96jV6glVjKFWAnrWq5a",
       "title": "機械のズレを人間が学ぶ ― テクノロジーがグルーヴをアップデートした瞬間",
       "review_report_sent": "2026-07-23",
       "verdict": "要修正（軽微）",
       "report_summary": "個人情報なし。Voodoo/Electric Lady/Soulquarians等の記述OK。「(リンク)」プレースホルダー4箇所。クエストラブ×ボブ・パワーの逸話は出典動画(RBMA)での語りの確認を推奨（一般に伝わる形と語り手が異なる可能性）。約5,400字とやや長め（許容）。"
     },
     {
-      "source_file": "groove_series_06.md",
-      "drive_file_id": "1oRuCLauey8a5Z5IxwAyTsVPPpEVWjnro"
+      "source_file": "groove_series_06_v4.md",
+      "drive_file_id": "1TO0k4bgKiz-ouOdEwFcJn5uoa4uObQAv"
     },
     {
-      "source_file": "bass_series_01.md",
-      "drive_file_id": "1VUSYVwmb7sffs6HLOa9N6hnUz3s-wtBA",
+      "source_file": "bass_series_01_v4.md",
+      "drive_file_id": "1Pzb8TrSc1fEoB0iDbdMjZXV4EA6nLDkp",
       "title": "低音は「あるかないか」ではない ― あなたの耳が騙されている理由"
     },
     {
-      "source_file": "bass_series_02.md",
-      "drive_file_id": "1IpmwhKWJTx-cirb3Sl2GzTcmcp1-z9RI",
+      "source_file": "bass_series_02_v4.md",
+      "drive_file_id": "1oUiG6WgO_7rpzDOuoUmaSZPa6mWX3-F0",
       "title": "目を閉じて、耳を澄ませてください ― あなたの周りは低音に溢れている"
     },
     {
-      "source_file": "bass_series_03.md",
-      "drive_file_id": "1vBWBYM3EEvFKk6d8-bCw1ODjBvVA68TF",
+      "source_file": "bass_series_03_v4.md",
+      "drive_file_id": "1QCr9cFlZ03L_XycFqRllviTcUm0YW34d",
       "title": "アコースティックベースは、背丈の大きさに聴こえていますか？"
     },
     {
-      "source_file": "bass_series_04.md",
-      "drive_file_id": "1UzLVsoc2m5yh3r0J0rB4C3MmhdzZDr3w",
+      "source_file": "bass_series_04_v4.md",
+      "drive_file_id": "1L2b9Im35eWjKX8XSlbPVAPvbt_-_ajuR",
       "title": "「ドンドン鳴っている」のと「芝居をしている低音」は全く違う"
     },
     {
-      "source_file": "bass_series_05.md",
-      "drive_file_id": "1t6YIbfbCaf6C5pKt1_10viEXSXUknFQw",
+      "source_file": "bass_series_05_v4.md",
+      "drive_file_id": "1FyoM-g6ftMgNLuX9ZSpk0goTO8sYOfOf",
       "title": "耳の穴では聴こえない ― 低音を体全体で受け取る"
     },
     {
-      "source_file": "practical_recording_levels.md",
-      "drive_file_id": "1KormEcnyv_AgIeE53zD21egmu_0Mopho",
+      "source_file": "practical_recording_levels_v4.md",
+      "drive_file_id": "17PTNaKwTOo2ohV8lcIGXJSmdF8p01g4g",
       "title": "宅録の際のレベル管理のコツ ― エレキベースで学ぶ、3つの変数の組み合わせ"
     },
     {
-      "source_file": "taste_series_01.md",
-      "drive_file_id": "1jp2K7W0PRr1FntZS4-qCuIafE03uOJvJ",
+      "source_file": "taste_series_01_v4.md",
+      "drive_file_id": "1vwLl_9ZdqtVw5jwS9cVjAEZr7nZzB6se",
       "title": "音楽を本当に味わうために"
     },
     {
-      "source_file": "harmony_series_01.md",
-      "drive_file_id": "1ifDJnSpUqGXIPcpFungWZeM3b9BuxtUn",
+      "source_file": "harmony_series_01_v4.md",
+      "drive_file_id": "1YgUdCbGKtZtaAzhwIj9zMAdZdu_LBizB",
       "title": "和音は、なぜ心を動かすのか ― ハーモニーへの誘い"
     },
     {
-      "source_file": "harmony_series_02.md",
-      "drive_file_id": "1avM8HiUghjOHYg2jdyAfQMVUDQa56FpX",
+      "source_file": "harmony_series_02_v4.md",
+      "drive_file_id": "1WfK1TRRGXMG9D7iAIqVp0wYYsF05ZB4X",
       "title": "音楽はなぜ「家に帰りたがる」のか ― ドミナントモーションの正体"
     },
     {
-      "source_file": "harmony_series_03.md",
-      "drive_file_id": "1Bn2RpQUi-WTP84VbUs6m0P_5HMK4sMc-",
+      "source_file": "harmony_series_03_v4.md",
+      "drive_file_id": "1LXKoox_KN41DOy-CUpIFxM0gsn_vOkDs",
       "title": "同じ「家」へ帰る、もう一本の道 ― 裏コードの正体"
     },
     {
-      "source_file": "harmony_series_04.md",
-      "drive_file_id": "1pTtYQgfs2kEbJuEUwHKpTrQYns6NgUKq",
+      "source_file": "harmony_series_04_v4.md",
+      "drive_file_id": "1RIRqWE_RpHBZsyWTfKMdiEW2Yxuaz703",
       "title": "コードはなぜ「つながって」聞こえるのか ― ボイスリーディングの正体"
     },
     {
-      "source_file": "harmony_series_05.md",
-      "drive_file_id": "1tAx3ewQaW_sfdt0T7IICS9EKs1-gkllz",
+      "source_file": "harmony_series_05_v4.md",
+      "drive_file_id": "1-YN9hm42LRMXrGBfCk--OzEnq8pJYMSv",
       "title": "2つの音だけで、コードは“語れる” ― ガイドトーンボイシングの正体"
     },
     {
-      "source_file": "harmony_series_06.md",
-      "drive_file_id": "1u-ROB6oGiYSYVBXFSzVaMFR-A9v3wDgR",
+      "source_file": "harmony_series_06_v4.md",
+      "drive_file_id": "1pseVd-Dcf9GKZP4kQaIcN6NycZHgsj_i",
       "title": "知ってる三和音を“上に乗せる”だけ ― アッパーストラクチャートライアドの正体"
     },
     {
-      "source_file": "harmony_series_bangai_01_blackadder.md",
-      "drive_file_id": "1uwp-0hPaJ020YE23vkNg-bJTdl5-4BYX",
+      "source_file": "harmony_series_bangai_01_blackadder_v4.md",
+      "drive_file_id": "1IrMLLuRBKBuH4-rU8RvV7NW0nrBt4udu",
       "title": "その「エモいコード」、実は100年以上前からあります ― ブラックアダーコードの正体"
     },
     {
-      "source_file": "harmony_series_07.md",
-      "drive_file_id": "16t6KrIwHgoE1UEHqQhg5VArx6UQpKAZo",
+      "source_file": "harmony_series_07_v4.md",
+      "drive_file_id": "1m2frM7K2o_zo8vtjtLP0-07NXoFg9L6H",
       "title": "メジャースケールの“一音違い” ― ミクソリディアンの正体"
     },
     {
-      "source_file": "harmony_series_08.md",
-      "drive_file_id": "1I1RRYl0lXzhK7CQqm2waWDsBqpvdu8fg",
+      "source_file": "harmony_series_08_v4.md",
+      "drive_file_id": "1tDdBDfFOsvOsaN72Gr_MDw9JpZ-4doeK",
       "title": "アボイドが、いちばんの個性になる ― リディアン・ドミナントの正体"
     }
   ]

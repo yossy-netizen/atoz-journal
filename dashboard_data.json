@@ -1,66 +1,66 @@
 {
- "updated_at": "2026-07-24 10:27 JST",
- "updated_by": "AtoZ Journal レビューリマインダー",
+ "updated_at": "2026-07-24 18:42 JST",
+ "updated_by": "Cowork（阿藤さん依頼・記事v4化に伴うリンク更新）",
  "summary": {
   "draft_count": 17
  },
  "titles": {
-  "harmony_series_08.md": "アボイドが、いちばんの個性になる ― リディアン・ドミナントの正体",
-  "harmony_series_07.md": "メジャースケールの“一音違い” ― ミクソリディアンの正体",
-  "harmony_series_bangai_01_blackadder.md": "その「エモいコード」、実は100年以上前からあります ― ブラックアダーコードの正体",
-  "harmony_series_06.md": "知ってる三和音を“上に乗せる”だけ ― アッパーストラクチャートライアドの正体",
-  "harmony_series_03.md": "同じ「家」へ帰る、もう一本の道 ― 裏コードの正体",
-  "harmony_series_01.md": "和音は、なぜ心を動かすのか ― ハーモニーへの誘い",
-  "harmony_series_04.md": "コードはなぜ「つながって」聞こえるのか ― ボイスリーディングの正体",
-  "harmony_series_02.md": "音楽はなぜ「家に帰りたがる」のか ― ドミナントモーションの正体",
-  "harmony_series_05.md": "2つの音だけで、コードは“語れる” ― ガイドトーンボイシングの正体",
-  "bass_series_02.md": "目を閉じて、耳を澄ませてください ― あなたの周りは低音に溢れている",
-  "groove_series_02.md": "同じリズムが別物になる ― スネアの位置を動かすだけで",
-  "bass_series_01.md": "低音は「あるかないか」ではない ― あなたの耳が騙されている理由",
-  "groove_series_04.md": "1拍目に命を懸ける ― ジェームス・ブラウンの「The One」",
-  "practical_recording_levels.md": "宅録の際のレベル管理のコツ ― エレキベースで学ぶ、3つの変数の組み合わせ",
-  "bass_series_04.md": "「ドンドン鳴っている」のと「芝居をしている低音」は全く違う",
-  "bass_series_03.md": "アコースティックベースは、背丈の大きさに聴こえていますか？",
-  "bass_series_05.md": "耳の穴では聴こえない ― 低音を体全体で受け取る",
-  "taste_series_01.md": "音楽を本当に味わうために",
-  "groove_series_05.md": "機械のズレを人間が学ぶ ― テクノロジーがグルーヴをアップデートした瞬間",
-  "groove_series_01.md": "リズムの絵の具を増やそう ― グルーヴとは何か",
-  "groove_series_03.md": "ストレートでもスウィングでもない ― J Dillaが見つけた「グレーゾーン」",
-  "groove_series_06.md": "リズムのネイティブ話者になる ― キーボード、メロディ、コード、そしてすべてに"
+  "harmony_series_08_v4.md": "アボイドが、いちばんの個性になる ― リディアン・ドミナントの正体",
+  "harmony_series_07_v4.md": "メジャースケールの“一音違い” ― ミクソリディアンの正体",
+  "harmony_series_bangai_01_blackadder_v4.md": "その「エモいコード」、実は100年以上前からあります ― ブラックアダーコードの正体",
+  "harmony_series_06_v4.md": "知ってる三和音を“上に乗せる”だけ ― アッパーストラクチャートライアドの正体",
+  "harmony_series_03_v4.md": "同じ「家」へ帰る、もう一本の道 ― 裏コードの正体",
+  "harmony_series_01_v4.md": "和音は、なぜ心を動かすのか ― ハーモニーへの誘い",
+  "harmony_series_04_v4.md": "コードはなぜ「つながって」聞こえるのか ― ボイスリーディングの正体",
+  "harmony_series_02_v4.md": "音楽はなぜ「家に帰りたがる」のか ― ドミナントモーションの正体",
+  "harmony_series_05_v4.md": "2つの音だけで、コードは“語れる” ― ガイドトーンボイシングの正体",
+  "bass_series_02_v4.md": "目を閉じて、耳を澄ませてください ― あなたの周りは低音に溢れている",
+  "groove_series_02_v4.md": "同じリズムが別物になる ― スネアの位置を動かすだけで",
+  "bass_series_01_v4.md": "低音は「あるかないか」ではない ― あなたの耳が騙されている理由",
+  "groove_series_04_v4.md": "1拍目に命を懸ける ― ジェームス・ブラウンの「The One」",
+  "practical_recording_levels_v4.md": "宅録の際のレベル管理のコツ ― エレキベースで学ぶ、3つの変数の組み合わせ",
+  "bass_series_04_v4.md": "「ドンドン鳴っている」のと「芝居をしている低音」は全く違う",
+  "bass_series_03_v4.md": "アコースティックベースは、背丈の大きさに聴こえていますか？",
+  "bass_series_05_v4.md": "耳の穴では聴こえない ― 低音を体全体で受け取る",
+  "taste_series_01_v4.md": "音楽を本当に味わうために",
+  "groove_series_05_v4.md": "機械のズレを人間が学ぶ ― テクノロジーがグルーヴをアップデートした瞬間",
+  "groove_series_01_v4.md": "リズムの絵の具を増やそう ― グルーヴとは何か",
+  "groove_series_03_v4.md": "ストレートでもスウィングでもない ― J Dillaが見つけた「グレーゾーン」",
+  "groove_series_06_v4.md": "リズムのネイティブ話者になる ― キーボード、メロディ、コード、そしてすべてに"
  },
  "pending_review": [
   {
-   "file": "groove_series_01.md",
+   "file": "groove_series_01_v4.md",
    "title": "リズムの絵の具を増やそう ― グルーヴとは何か",
-   "drive_link": "https://drive.google.com/file/d/1e4IkCrjMF4JqJbgzR-WIUxGCi_ZoJSMW/view?usp=drivesdk",
+   "drive_link": "https://drive.google.com/file/d/1T_WSgBHKQBT-yJwo-iUnFNB1_2Ox1Zcy/view?usp=drivesdk",
    "verdict": "公開推奨",
    "report_summary": "第一声が肯定で開始・原則1/6/7と整合。個人情報なし。事実関係OK。シリーズ導入として完成度高く、最初の公開に最適。フロントマター(description/タグ)無しは公開時に自動投稿が補完。"
   },
   {
-   "file": "groove_series_02.md",
+   "file": "groove_series_02_v4.md",
    "title": "同じリズムが別物になる ― スネアの位置を動かすだけで",
-   "drive_link": "https://drive.google.com/file/d/1D29LAQNwACmIWNuvWCKRJJHefcXnoLVE/view?usp=drivesdk",
+   "drive_link": "https://drive.google.com/file/d/1Xoi-8JiA58jmhgLmDRm1WMG9cxQq6FvC/view?usp=drivesdk",
    "verdict": "要修正（軽微）",
    "report_summary": "本文は公開品質（個人情報なし・Headhunters/ポール・ジャクソン&マイク・クラークの記述OK）。第1回への参照が「(リンク)」プレースホルダーのまま1箇所→groove-series-01.htmlへの差し替えかテキスト化が必要。"
   },
   {
-   "file": "groove_series_03.md",
+   "file": "groove_series_03_v4.md",
    "title": "ストレートでもスウィングでもない ― J Dillaが見つけた「グレーゾーン」",
-   "drive_link": "https://drive.google.com/file/d/1uY90tKHC1XRWstJDdq8EF1iPp_E0NrNS/view?usp=drivesdk",
+   "drive_link": "https://drive.google.com/file/d/1bWBrPAsp0n7_uOCYDOnRCOXByPLKW5hS/view?usp=drivesdk",
    "verdict": "要修正（軽微）",
    "report_summary": "J Dillaの経歴・グレーゾーン解説は正確、個人情報なし。第1回・第2回への「(リンク)」プレースホルダー2箇所の差し替えが必要。Buckner動画由来の用語(Strung/Rub)は出典明記済みで問題なし。"
   },
   {
-   "file": "groove_series_04.md",
+   "file": "groove_series_04_v4.md",
    "title": "1拍目に命を懸ける ― ジェームス・ブラウンの「The One」",
-   "drive_link": "https://drive.google.com/file/d/16662n54DvOz9ysyy4Pf9W9wqniU1ByFT/view?usp=drivesdk",
+   "drive_link": "https://drive.google.com/file/d/1Oc1Dhy5A7Bd5sk8UI5Rp7r97fDRGNPum/view?usp=drivesdk",
    "verdict": "要修正（軽微）",
    "report_summary": "JB史実OK（ブーツィー1970年加入・Mr. Dynamite 2014等）、個人情報なし。誤記1件:「音楽監督（MQ）」→正しくは（MD）。「(リンク)」プレースホルダー3箇所。バックビート→The Oneの説明はやや単純化だが許容範囲。"
   },
   {
-   "file": "groove_series_05.md",
+   "file": "groove_series_05_v4.md",
    "title": "機械のズレを人間が学ぶ ― テクノロジーがグルーヴをアップデートした瞬間",
-   "drive_link": "https://drive.google.com/file/d/1Bim3Nw3qglYHED5Ry7Fw3jLUKjOiCblT/view?usp=drivesdk",
+   "drive_link": "https://drive.google.com/file/d/1EeXHE9pAjBBfE96jV6glVjKFWAnrWq5a/view?usp=drivesdk",
    "verdict": "要修正（軽微）",
    "report_summary": "個人情報なし。Voodoo/Electric Lady/Soulquarians等の記述OK。「(リンク)」プレースホルダー4箇所。クエストラブ×ボブ・パワーの逸話は出典動画(RBMA)での語りの確認を推奨（一般に伝わる形と語り手が異なる可能性）。約5,400字とやや長め（許容）。"
   }
@@ -103,6 +103,11 @@
   }
  ],
  "changelog": [
+  {
+   "date": "2026-07-24",
+   "by": "Cowork",
+   "event": "阿藤さんの指示で在庫全22本を文体改稿＋フッター確定文言でv4化。ダッシュボードの判断待ち記事リンク（pending_review.drive_link）・タイトル一覧のキー（titles）・承認状態の正本（review_status.json の source_file/drive_file_id）を旧版→_v4に一括更新。承認→02-1コピー→公開が_v4を指すよう是正。旧版（原本/_v2/_v3・各22本）はDrive掃除対象。"
+  },
   {
    "date": "2026-07-24",
    "by": "レビューリマインダー",
