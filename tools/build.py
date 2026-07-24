@@ -100,6 +100,7 @@ def parse_atoz_legacy(text: str):
 def slugify(name: str) -> str:
     s = unicodedata.normalize("NFKC", name)
     s = re.sub(r"\.md$", "", s)
+    s = re.sub(r"_v\d+$", "", s)  # 版サフィックス(_v2/_v4等)は公開URL・slugに残さない
     s = re.sub(r"[^A-Za-z0-9぀-ヿ一-鿿-]+", "-", s)
     return s.strip("-").lower() or "article"
 
