@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-08-03 13:13 JST",
+ "updated_at": "2026-08-03 13:20 JST",
  "updated_by": "精査サポート",
  "summary": {
   "draft_count": 7
@@ -14,19 +14,19 @@
   "harmony_series_04_v4.md": "コードはなぜ「つながって」聞こえるのか ― ボイスリーディングの正体",
   "harmony_series_02_v4.md": "音楽はなぜ「家に帰りたがる」のか ― ドミナントモーションの正体",
   "harmony_series_05_v4.md": "2つの音だけで、コードは“語れる” ― ガイドトーンボイシングの正体",
-  "bass_series_02_v4.md": "目を閉じて、耳を澄ませてください ― あなたの周りは低音に溢れている",
   "groove_series_02_v4.md": "同じリズムが別物になる ― スネアの位置を動かすだけで",
-  "bass_series_01_v4.md": "低音は「あるかないか」ではない ― あなたの耳が騙されている理由",
   "groove_series_04_v4.md": "1拍目に命を懸ける ― ジェームス・ブラウンの「The One」",
   "practical_recording_levels_v4.md": "宅録の際のレベル管理のコツ ― エレキベースで学ぶ、3つの変数の組み合わせ",
-  "bass_series_04_v4.md": "「ドンドン鳴っている」のと「芝居をしている低音」は全く違う",
   "bass_series_03_v4.md": "アコースティックベースは、背丈の大きさに聴こえていますか？",
   "bass_series_05_v4.md": "耳の穴では聴こえない ― 低音を体全体で受け取る",
   "taste_series_01_v4.md": "音楽を本当に味わうために",
   "groove_series_05_v4.md": "機械のズレを人間が学ぶ ― テクノロジーがグルーヴをアップデートした瞬間",
   "groove_series_01_v4.md": "リズムの絵の具を増やそう ― グルーヴとは何か",
   "groove_series_03_v4.md": "ストレートでもスウィングでもない ― J Dillaが見つけた「グレーゾーン」",
-  "groove_series_06_v4.md": "リズムのネイティブ話者になる ― キーボード、メロディ、コード、そしてすべてに"
+  "groove_series_06_v4.md": "リズムのネイティブ話者になる ― キーボード、メロディ、コード、そしてすべてに",
+  "bass_series_01_v5.md": "低音は「あるかないか」ではない ― あなたの耳が騙されている理由",
+  "bass_series_02_v5.md": "目を閉じて、耳を澄ませてください ― あなたの周りは低音に溢れている",
+  "bass_series_04_v5.md": "「ドンドン鳴っている」のと「芝居をしている低音」は全く違う"
  },
  "pending_review": [
   {
@@ -51,38 +51,24 @@
    "report_summary": "個人情報なし。Voodoo/Electric Lady/Soulquarians等の記述OK。「(リンク)」プレースホルダー4箇所。クエストラブ×ボブ・パワーの逸話は出典動画(RBMA)での語りの確認を推奨（一般に伝わる形と語り手が異なる可能性）。約5,400字とやや長め（許容）。"
   },
   {
-   "file": "groove_series_06_v4.md",
-   "title": "リズムのネイティブ話者になる ― キーボード、メロディ、コード、そしてすべてに",
-   "drive_link": "https://drive.google.com/file/d/1TO0k4bgKiz-ouOdEwFcJn5uoa4uObQAv/view?usp=drivesdk",
-   "verdict": "要修正（軽微）",
-   "report_summary": "個人情報なし・第一声肯定・原則2/3と整合・文体ガイドライン準拠。要修正2点: ①Despacitoの「YouTube史上最大のヒット曲」は2020年11月にBaby Shark Danceが首位交代済み→「屈指の再生数を誇る」等へ。②「(リンク)」プレースホルダー5箇所（第1〜5回）。デヴィッド・サンボーンの証言は伝聞形のため出典明記を推奨。約7,500字と長め（最終回・総集編として許容かご判断を）。"
-  },
-  {
-   "file": "bass_series_01_v4.md",
+   "file": "bass_series_01_v5.md",
    "title": "低音は「あるかないか」ではない ― あなたの耳が騙されている理由",
-   "drive_link": "https://drive.google.com/file/d/1Pzb8TrSc1fEoB0iDbdMjZXV4EA6nLDkp/view?usp=drivesdk",
-   "verdict": "要修正（個人情報）",
+   "drive_link": "https://drive.google.com/file/d/12lxRP_GoZmnjhEoq9V8HBnmS1eO4h0jK/view?usp=drivesdk",
+   "verdict": "修正済み（承認待ち）",
    "report_summary": "【最優先】品質ガイドライン1に抵触: 「実際のレッスンで…受講者の耳にはE♭mに聞こえていた」というレッスン事例の記述。授業由来素材は題材・問いのみを取り出す形への一般化が必要です。他: Physics Girlの綴りは Dianna Cowern（本文の Diana は誤記）。A♭mとE♭mは完全5度差のため直後の「半音の識別が難しい」説明と噛み合わず、ミッシング・ファンダメンタル（基音と倍音の取り違え）に寄せると論理が通ります。約4,000字・SEO要件OK。"
   },
   {
-   "file": "bass_series_02_v4.md",
+   "file": "bass_series_02_v5.md",
    "title": "目を閉じて、耳を澄ませてください ― あなたの周りは低音に溢れている",
-   "drive_link": "https://drive.google.com/file/d/1oUiG6WgO_7rpzDOuoUmaSZPa6mWX3-F0/view?usp=drivesdk",
-   "verdict": "要修正（軽微）",
+   "drive_link": "https://drive.google.com/file/d/1ulD6SzqnQaS3a1uR7UtH7Ng6i_qMuc12/view?usp=drivesdk",
+   "verdict": "修正済み（承認待ち）",
    "report_summary": "個人情報なし・原則3/6と整合・文体良好。要修正: ①「(リンク)」プレースホルダー2箇所（第1回）。②内部整合—補足で「スマホのマイクは20〜40Hzを正確に捉えるのは困難」としつつ、後段で大型車の「10Hz〜30Hz」をスマホ観測前提で記述。読者が試して見えない可能性があるため一言添えるか帯域表記を40Hz〜へ。参考YouTubeリンクの実在は当日未検証（YouTube側の応答制限）、公開前の目視確認を推奨。約4,300字。"
   },
   {
-   "file": "bass_series_03_v4.md",
-   "title": "アコースティックベースは、背丈の大きさに聴こえていますか？",
-   "drive_link": "https://drive.google.com/file/d/1QCr9cFlZ03L_XycFqRllviTcUm0YW34d/view?usp=drivesdk",
-   "verdict": "要修正",
-   "report_summary": "要注意2点: ①品質ガイドライン1—「一人暮らしのスタッフが引っ越したところ家賃据え置きで環境改善」はスタッフの居住・家賃という個人的事情。「同じ面積でも間取りで大きく変わるケースがあります」等へ一般化を推奨。②事実関係—「150〜200kg/m³密度のロックウール」は低域吸音の一般的推奨（概ね45〜100kg/m³）を超え、高密度化は中高域を反射して逆効果。50〜100kg/m³＋背後に空気層、へ要修正。40Hz≒8.6m・38%ルール・サブウーファー壁際・ソフト補正はヌルに無力、はいずれも正確。「(リンク)」3箇所。約8,000字と目安を大きく超過（分割の要否をご判断ください）。"
-  },
-  {
-   "file": "bass_series_04_v4.md",
+   "file": "bass_series_04_v5.md",
    "title": "「ドンドン鳴っている」のと「芝居をしている低音」は全く違う",
-   "drive_link": "https://drive.google.com/file/d/1L2b9Im35eWjKX8XSlbPVAPvbt_-_ajuR/view?usp=drivesdk",
-   "verdict": "要修正（軽微）＋要判断",
+   "drive_link": "https://drive.google.com/file/d/1IkthVwJF2K8IM9xzvgZ26cBrhTyJTJlN/view?usp=drivesdk",
+   "verdict": "修正済み（承認待ち）",
    "report_summary": "個人情報なし・原則1/3/6と整合、シリーズ随一の読み応え。要修正: ①「東宝シネマズ」→正しくは「TOHOシネマズ」（趣旨が「音響基準の揃った劇場」ならDolby Atmos／THX認証館という書き方がより正確）。②「(リンク)」4箇所。史実（アラン・メイヤーソン／TR-808 1980年／Planet Rock 1982年／アマピアノのログドラム）はOK、テンプル教会32フィート管≒16Hzの物理計算も正確。【要判断】「比較分析—天才の得意領域を正確に見る」節は匿名ながらアニメ・映像音楽界の特定作曲家が推測されうる比較批評です。敬意ある筆致で原則1/4とは整合しますが、原則5・8（説得や告発ではなく自分の層で完結）に照らし掲載可否のご判断を仰ぎます（掲載／節を外す／さらに一般化の3案）。約6,000字。"
   },
   {
@@ -159,6 +145,11 @@
   }
  ],
  "changelog": [
+  {
+   "date": "2026-08-03",
+   "by": "精査サポート",
+   "event": "セッション返信で阿藤さんの判断を反映。承認2本（グルーヴ第6回・ベース第3回＝指摘事項は修正不要とのご判断）を02-1へコピー。修正指示3本を _v5 として01-4に保存: bass_series_01（ミッシング・ファンダメンタルの外部動画出典を削除し一般化／レッスン事例は今回のみ一般化不要とのご指示でそのまま維持）、bass_series_02（スマホ計測を「概要は分かる」表現に整え、フィールドレコーディングの外部動画出典を削除し一般化）、bass_series_04（「東宝シネマズ」→「TOHOシネマズ」／「比較分析」節はこのまま掲載）。_v5 の3本は承認待ち。tracking の source_file / drive_file_id / titles / pending_review を現役 _v5 に更新。旧 _v4 3本（01-4）は掃除リスト対象。判断待ち6本・公開待ち2本・精査待ち残12本。"
+  },
   {
    "date": "2026-08-03",
    "by": "精査サポート",
