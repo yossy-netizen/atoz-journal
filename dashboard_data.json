@@ -1,6 +1,6 @@
 {
- "updated_at": "2026-08-14 10:16 JST",
- "updated_by": "レビューリマインダー",
+ "updated_at": "2026-08-25 22:50 JST",
+ "updated_by": "精査サポート",
  "summary": {
   "draft_count": 0
  },
@@ -35,13 +35,6 @@
    "drive_link": "https://drive.google.com/file/d/1bWBrPAsp0n7_uOCYDOnRCOXByPLKW5hS/view?usp=drivesdk",
    "verdict": "要修正（軽微）",
    "report_summary": "J Dillaの経歴・グレーゾーン解説は正確、個人情報なし。第1回・第2回への「(リンク)」プレースホルダー2箇所の差し替えが必要。Buckner動画由来の用語(Strung/Rub)は出典明記済みで問題なし。"
-  },
-  {
-   "file": "groove_series_04_v4.md",
-   "title": "1拍目に命を懸ける ― ジェームス・ブラウンの「The One」",
-   "drive_link": "https://drive.google.com/file/d/1Oc1Dhy5A7Bd5sk8UI5Rp7r97fDRGNPum/view?usp=drivesdk",
-   "verdict": "要修正（軽微）",
-   "report_summary": "JB史実OK（ブーツィー1970年加入・Mr. Dynamite 2014等）、個人情報なし。誤記1件:「音楽監督（MQ）」→正しくは（MD）。「(リンク)」プレースホルダー3箇所。バックビート→The Oneの説明はやや単純化だが許容範囲。"
   },
   {
    "file": "groove_series_05_v4.md",
@@ -194,6 +187,11 @@
   }
  ],
  "changelog": [
+  {
+   "date": "2026-08-25",
+   "by": "精査サポート",
+   "event": "ダッシュボード承認の取り込み（22:16保存分）: グルーヴ第4回「1拍目に命を懸ける ― ジェームス・ブラウンの「The One」」の承認を反映し02-1へコピー（公開待ち2本=ベース第3回・グルーヴ第4回）。修正要望1件（グルーヴ第3回=打点論の筆者視点を追記）を受領し、「筆者の視点 ― そもそも『打点』は定義できない」節を追記した_v5案を作成、阿藤さんの確認待ち（確認後01-4へ保存）。判断待ちは17本に。※GitHubへのpushはgitプロキシ403（リポジトリ未認可）で不可のため、本更新の反映はpush復旧後"
+  },
   {
    "date": "2026-08-14",
    "by": "レビューリマインダー",
