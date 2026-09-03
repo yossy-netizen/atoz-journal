@@ -1,8 +1,8 @@
 {
- "updated_at": "2026-09-03 09:25 JST",
- "updated_by": "自動投稿",
+ "updated_at": "2026-09-03 10:17 JST",
+ "updated_by": "精査サポート",
  "summary": {
-  "draft_count": 3
+  "draft_count": 0
  },
  "titles": {
   "harmony_series_08_v4.md": "アボイドが、いちばんの個性になる ― リディアン・ドミナントの正体",
@@ -88,6 +88,27 @@
    "drive_link": "https://drive.google.com/file/d/1lGd3g-o6yfxNWtpfDDphCgRjXnil1MPf/view?usp=drivesdk",
    "verdict": "公開推奨",
    "report_summary": "個人情報なし（source_note記載の通りプロ向け授業テーマを一般化済み）。第一声肯定（「足したくなる気持ちは、正しい」と読者の衝動を先に承認）・原則1と整合（カウント・ベイシー/マイルス・デイヴィス/日本の「間」等、歴史・文化への敬意）。事実関係OK・リンクプレースホルダーなし。SEO要件OK（description良質・タグ3件）。約2,600字。シリーズ外の単発記事として完成度が高い。"
+  },
+  {
+   "file": "2026-08-25_about_atoz_sound_journal.md",
+   "title": "ようこそ、AtoZ Sound Journal へ",
+   "drive_link": "https://drive.google.com/file/d/1HfS_Qd5xDPxpm7ivR4O3qhhBBcBiNO26/view?usp=drivesdk",
+   "verdict": "公開推奨",
+   "report_summary": "個人情報なし。第一声肯定（「ようこそ」から始まる歓迎の書き出し）・原則1/5/6と整合（たこ焼き味の比喩で全レイヤーへの敬意、「あなたを変えようとしない」で原則5、「聴こえるを大切に」で原則6を明記）。基盤記事A-1（サイト紹介）として文体・構成とも良好。事実関係の懸念なし・リンクプレースホルダーなし。SEO要件OK（description良質・タグ2件）。約2,300字。"
+  },
+  {
+   "file": "2026-08-25_wavetable_synth_story.md",
+   "title": "伸ばした音の、その先へ ― 音色が動くシンセ、ウェーブテーブルの物語",
+   "drive_link": "https://drive.google.com/file/d/1UTSB7jqUBDWF2HPc2L4VaeAS204s5DIS/view?usp=drivesdk",
+   "verdict": "公開推奨",
+   "report_summary": "source_note記載の通りプロ向け授業テーマを一般化済み・個人情報なし。第一声肯定・原則1/2と整合（「動こうとする意思」の実例としてウェーブテーブルの音色変化を提示）。史実確認: Minimoog(1970)・PPG Wave 2.2(1982、ヴォルフガング・パーム/ハンブルク)・Tangerine Dream/Thomas Dolbyの使用・Waldorfへの継承・Prophet VS(1986)・Korg Wavestation(1990)・NI Massive(2007)・Xfer Serum(2014)・Roland JP-8000スーパーソー、いずれも一般に知られる史実と整合し誤りなし。リンクプレースホルダーなし。SEO要件OK（description良質・タグ3件）。約2,700字。"
+  },
+  {
+   "file": "2026-08-26_eight_principles_declaration.md",
+   "title": "私たちが信じていること ― AtoZ Sound Journal の8原則",
+   "drive_link": "https://drive.google.com/file/d/1Zce_3M27f9LU0Wpefh0u93kRvpgZ2xn0/view?usp=drivesdk",
+   "verdict": "公開推奨",
+   "report_summary": "個人情報なし。第一声は否定から入らずAI時代の現況描写から入り原則7と整合。8原則すべてへの解説記事として基盤記事（A-2・サイトの「背骨」）に相応しい構成。デミング/スティーブ・ジョブズ/是枝裕和への言及は一般に知られる評価に基づく例示で、個人の逸話性はなく問題なし。リンクプレースホルダーなし。SEO要件OK（description良質・タグ4件）。約3,200字。"
   }
  ],
  "roadmap": [
@@ -128,6 +149,11 @@
   }
  ],
  "changelog": [
+  {
+   "date": "2026-09-03",
+   "by": "精査サポート",
+   "event": "定時実行（木曜10時）: 【共通処理A】ダッシュボード承認箱（approvals.json、実体はDashboardフォルダ名で再特定: 16bozV1o6nByPawK0WmQ5Axa-px-KJvFl）は既存分すべて処理済みで新規なし（承認13件・修正要望3件はいずれもreview_status.jsonに反映済み。修正要望3件はグルーヴ第3回・第5回・ベース第1回のv5/v6追記案が作成済みで阿藤さんの確認待ち継続）。01-4（実体はフォルダ名で再特定: 1Cpc2uqEhK_ThtVc8LrpWKPfW_vtBZhfe）の新着未登録3本（金曜レビューリマインダーが検知済みだったもの）を review_status.json に登録し精査レポートを作成: 『ようこそ、AtoZ Sound Journal へ』『伸ばした音の、その先へ ― 音色が動くシンセ、ウェーブテーブルの物語』『私たちが信じていること ― AtoZ Sound Journal の8原則』（3本ともいずれも公開推奨・個人情報なし）。精査待ち0本。※Google Driveの01-4/02-1/02-2フォルダIDが運用ルールv9・review_status.json記載のものと相違（前回自動投稿が既報のとおり2026-09-02付で再作成された模様）。フォルダ名で実体を特定して処理。運用ルール側のID記載更新を次回改訂時に推奨。"
+  },
   {
    "date": "2026-09-03",
    "by": "自動投稿",
