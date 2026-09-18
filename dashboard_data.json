@@ -1,6 +1,6 @@
 {
- "updated_at": "2026-09-17 09:17 JST",
- "updated_by": "AtoZ Journal 自動投稿",
+ "updated_at": "2026-09-18 10:09 JST",
+ "updated_by": "AtoZ Journal レビューリマインダー",
  "summary": {
   "draft_count": 32
  },
@@ -128,6 +128,11 @@
   }
  ],
  "changelog": [
+  {
+   "date": "2026-09-18",
+   "by": "レビューリマインダー",
+   "event": "定時監査: 【共通処理A】approvals.json（Dashboard配下・親確認済）の承認13件・修正要望3件はいずれも review_status.json に反映済みで新規取り込みなし。【解決ルール2-0】01-4／02-1／02-2／Dashboard を名前解決し、01-4 の現物60件（現役55件）と review_status.json の drive_file_id、02-1 の現物15件と state.json の drive_file_id、dashboard_data.json の pending_review リンク8件をファイル名基準で突合——全件一致・更新不要。監査結果: 精査待ち32本（現役・レポート未送付）／判断待ち8本（変更なし）／公開待ち（02-1・未公開）5本＝週2本ペースで約2.5週分。掃除リスト: 01-4 の承認済コピー済原本15本＋旧版5本（bass_series_01/02/04 の _v4、film_scoring 05/06 のサフィックス無し）、02-1 の公開済原本10本（02-2 に控え10件の存在を実地確認済）。修正要望3件（groove_series_03→_v5案／groove_series_05→_v5案／bass_series_01→_v6案）はいずれも精査サポートが改稿案を作成済で阿藤さんの確認待ち。直近1週間の公開: 2026-09-14 ベース第5回・2026-09-17 実践ガイド「宅録のレベル管理」。"
+  },
   {
    "date": "2026-09-17",
    "by": "自動投稿",
