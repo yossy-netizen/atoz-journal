@@ -97,3 +97,19 @@ def test_build_profile_continuity_is_finite_when_one_side_is_constant():
              for i, v in enumerate([0.0, 0.0, 0.0, 5.0])]
     prof = build_profile(notes)
     assert np.isfinite(prof.intonation.continuity)
+
+
+def test_dynamics_estimation_from_audio():
+    p = load_profile("cello_classical")
+    p.dynamics.wobble = 0.0
+    notes = [Note(48, 0.0, 1.2), Note(50, 1.5, 1.2), Note(52, 3.0, 1.2), Note(55, 4.5, 1.2)]
+    c = generate_contour(notes, p, seed=2)
+    an, tr = analyze_audio(synthesize(c), SR)
+    assert tr.rms is not None and len(tr.rms) == len(tr.times)
+    assert len(an) == 4
+    for a in an:
+        assert "dyn_attack_ms" in a.params and "dyn_sustain_slope" in a.params
+        assert 0.0 <= a.params["dyn_attack_from"] <= 1.0
+    prof = build_profile(an, base=p, name="t")
+    assert prof.dynamics.attack_ms.mean > 0
+    assert -0.6 <= prof.dynamics.sustain_slope.mean <= 0.6

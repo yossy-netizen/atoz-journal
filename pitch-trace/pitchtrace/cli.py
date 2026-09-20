@@ -38,6 +38,9 @@ def _add_render_opts(ap: argparse.ArgumentParser) -> None:
     ap.add_argument("--no-lookahead", action="store_true", help="次の音を見ない（リアルタイム動作の模擬）")
     ap.add_argument("--max-events-per-s", type=float, default=None, help="ベンド/CC の最大密度")
     ap.add_argument("--vibrato-lane", choices=["bend", "cc"], default=None, help="ビブラートの出力先を上書き")
+    ap.add_argument("--no-dynamics", action="store_true", help="ダイナミクス CC を出さない")
+    ap.add_argument("--no-timing", action="store_true", help="マイクロタイミングを適用しない")
+    ap.add_argument("--dyn-cc", type=int, default=None, help="ダイナミクスの CC 番号を上書き（既定 11）")
     ap.add_argument("--tempo", type=float, default=None, help="出力 MIDI のテンポ（秒→tick 変換用）。既定は入力 MIDI の最初のテンポ、なければ 120")
 
 
@@ -57,6 +60,8 @@ def _prepare(args, notes: list[Note]):
     profile = load_profile(args.profile)
     if args.vibrato_lane:
         profile.output.vibrato_lane = args.vibrato_lane
+    if args.dyn_cc is not None:
+        profile.dynamics.cc_number = args.dyn_cc
     if args.mode == "single":
         notes = make_monophonic(notes, overlap_s=args.legato_overlap_ms / 1000.0)
     contour = generate_contour(notes, profile, seed=args.seed, amount=args.amount, lookahead=not args.no_lookahead)
@@ -78,10 +83,11 @@ def cmd_render(args) -> int:
     profile, contour = _prepare(args, notes)
     render_midi(contour, profile, args.output, mode=args.mode, bend_range=args.bend_range,
                 legato_overlap_s=args.legato_overlap_ms / 1000.0, max_events_per_s=args.max_events_per_s,
-                tempo_bpm=_output_tempo(args, mf))
+                tempo_bpm=_output_tempo(args, mf), dynamics=not args.no_dynamics, timing=not args.no_timing)
     n_vib = sum(1 for nc in contour.notes if "vibrato_rate_hz" in nc.params)
     n_port = sum(1 for nc in contour.notes if nc.params.get("portamento"))
-    print(f"{len(notes)} 音符 → {args.output}  (profile={profile.name}, mode={args.mode}, vibrato {n_vib}, portamento {n_port})")
+    dyn = "off" if args.no_dynamics or not profile.dynamics.enabled else f"CC{profile.dynamics.cc_number}"
+    print(f"{len(notes)} 音符 → {args.output}  (profile={profile.name}, mode={args.mode}, vibrato {n_vib}, portamento {n_port}, dynamics {dyn})")
     return 0
 
 
@@ -89,11 +95,11 @@ def cmd_dump(args) -> int:
     notes, _ = load_midi_notes(args.input, track=args.track, channel=args.channel)
     profile, contour = _prepare(args, notes)
     with open(args.output, "w", encoding="utf-8") as f:
-        f.write("time_s,note,cents,intonation,transition,attack,vibrato,drift,release,jitter\n")
+        f.write("time_s,note,cents,intonation,transition,attack,vibrato,drift,release,jitter,dyn\n")
         for nc in contour.notes:
             for k, ti in enumerate(nc.t):
                 parts = ",".join(f"{nc.parts[p][k]:.2f}" for p in ("intonation", "transition", "attack", "vibrato", "drift", "release", "jitter"))
-                f.write(f"{nc.note.onset + ti:.4f},{nc.note.pitch},{nc.cents[k]:.2f},{parts}\n")
+                f.write(f"{nc.note.onset + ti:.4f},{nc.note.pitch},{nc.cents[k]:.2f},{parts},{nc.dyn[k]:.3f}\n")
     print(f"→ {args.output}")
     return 0
 
@@ -147,7 +153,8 @@ def cmd_demo(args) -> int:
     _, flat = _prepare(flat_args, notes)
     tag = profile.name
     render_kw = dict(mode=args.mode, bend_range=args.bend_range, tempo_bpm=_output_tempo(args, mf),
-                     legato_overlap_s=args.legato_overlap_ms / 1000.0, max_events_per_s=args.max_events_per_s)
+                     legato_overlap_s=args.legato_overlap_ms / 1000.0, max_events_per_s=args.max_events_per_s,
+                     dynamics=not args.no_dynamics, timing=not args.no_timing)
     render_midi(contour, profile, out / f"demo_{tag}.mid", **render_kw)
     render_midi(flat, profile, out / "demo_static.mid", **render_kw)
     write_wav(out / f"demo_{tag}.wav", synthesize(contour))
@@ -185,7 +192,8 @@ def cmd_live(args) -> int:
     def factory(send):
         return RealtimeTracer(profile=profile, send=send, mode=args.mode, bend_range=args.bend_range,
                               channel=args.out_channel, seed=args.seed, amount=args.amount,
-                              legato_overlap_s=args.legato_overlap_ms / 1000.0, passthrough=not args.no_passthrough)
+                              legato_overlap_s=args.legato_overlap_ms / 1000.0, passthrough=not args.no_passthrough,
+                              dynamics=not args.no_dynamics)
 
     run_live(factory, args.inport, args.outport, in_channel=args.in_channel, verbose=args.verbose)
     return 0

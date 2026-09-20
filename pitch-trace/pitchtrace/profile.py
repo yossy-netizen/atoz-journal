@@ -132,6 +132,44 @@ class Jitter:
 
 
 @dataclass
+class Dynamics:
+    """音量表情（CC11 等）。値は 0..1 の相対レベルで、レンダリング時に CC 値へ変換する。"""
+
+    enabled: bool = True
+    cc_number: int = 11
+    # ベロシティ 100 のときの基準レベル（0..1）と、ベロシティの効き（0 = 無視、1 = 比例）
+    base: float = 0.75
+    velocity_weight: float = 0.5
+    # 発音時のふくらみ: attack_from × レベルから attack_ms かけて本来のレベルへ
+    attack_ms: Dist = field(default_factory=lambda: Dist(60.0, 25.0, 10.0, 250.0))
+    attack_from: Dist = field(default_factory=lambda: Dist(0.55, 0.15, 0.2, 1.0))
+    # サステイン中の傾き（1 秒あたりの比率。負でデクレッシェンド）
+    sustain_slope: Dist = field(default_factory=lambda: Dist(-0.05, 0.08, -0.4, 0.3))
+    # 音末の減衰（次の音がレガートでないときだけ）
+    release_ms: Dist = field(default_factory=lambda: Dist(80.0, 30.0, 20.0, 300.0))
+    release_to: Dist = field(default_factory=lambda: Dist(0.4, 0.15, 0.05, 1.0))
+    # フレーズの山に向かうクレッシェンド量（±この半分）
+    phrase_arc: float = 0.2
+    # ゆっくりした揺らぎ（比）
+    wobble: float = 0.03
+    min: float = 0.05
+    max: float = 1.0
+
+
+@dataclass
+class Timing:
+    """マイクロタイミング（オフライン専用。リアルタイムでは未来を動かせない）。"""
+
+    enabled: bool = True
+    onset_ms: Dist = field(default_factory=lambda: Dist(0.0, 8.0, -30.0, 30.0))
+    # レガートの音は少し早めに入る / フレーズ先頭は少し遅れる
+    legato_lead_ms: Dist = field(default_factory=lambda: Dist(6.0, 4.0, 0.0, 25.0))
+    phrase_first_delay_ms: Dist = field(default_factory=lambda: Dist(8.0, 6.0, 0.0, 40.0))
+    # 非レガートの音は次の音との間に隙間を作る（音を短くする）
+    detach_gap_ms: Dist = field(default_factory=lambda: Dist(25.0, 12.0, 0.0, 100.0))
+
+
+@dataclass
 class Output:
     # ビブラート成分をどのレーンに出すか: "bend" | "cc"
     vibrato_lane: str = "bend"
@@ -155,6 +193,8 @@ class Profile:
     drift: Drift = field(default_factory=Drift)
     release: Release = field(default_factory=Release)
     jitter: Jitter = field(default_factory=Jitter)
+    dynamics: Dynamics = field(default_factory=Dynamics)
+    timing: Timing = field(default_factory=Timing)
     output: Output = field(default_factory=Output)
     # 解析由来の場合の統計（音符数など）。生成には使わない
     stats: dict = field(default_factory=dict)
@@ -166,7 +206,7 @@ class Profile:
         for key in ("name", "instrument", "style", "version", "source", "hop_ms", "stats"):
             if key in d:
                 setattr(p, key, d[key])
-        for section in ("intonation", "transition", "attack", "vibrato", "drift", "release", "jitter", "output"):
+        for section in ("intonation", "transition", "attack", "vibrato", "drift", "release", "jitter", "dynamics", "timing", "output"):
             if section not in d:
                 continue
             obj = getattr(p, section)

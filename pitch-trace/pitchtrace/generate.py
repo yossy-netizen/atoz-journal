@@ -29,7 +29,9 @@ class NoteContext:
     prev_intonation: float = 0.0
     next_legato: bool | None = None     # 次の音がレガートで続くか。None = 不明（リアルタイム）
     phrase_end: bool | None = None      # フレーズ末か。None = 不明
+    phrase_first: bool = False
     is_climax: bool = False
+    arc_pos: float | None = None        # フレーズ内の位置: 0 = 始まり/終わり, 1 = 山（クライマックス）。None = 不明
 
 
 @dataclass
@@ -40,6 +42,7 @@ class NoteContour:
     parts: dict[str, np.ndarray]  # 成分ごとの内訳
     vib_env: np.ndarray           # ビブラート深さの包絡（セント）
     params: dict                  # サンプリングされたパラメータ（解析との突き合わせ用）
+    dyn: np.ndarray = None        # 音量レベル（0..1）。type: ignore[assignment]
     # 次の音のポルタメント開始点に使う終端偏差（intonation + drift + release。ビブラートは中心のみ）。
     # amount を掛ける前の値。次の音の生成時に他の成分と一緒に amount が掛かる
     end_track: np.ndarray = None  # type: ignore[assignment]
@@ -219,10 +222,55 @@ def generate_note(
     jit = _moving_average(jit, max(int(J.smooth_ms / 1000.0 / hop_s), 1))
     parts["jitter"] = jit
 
+    # --- ダイナミクス（0..1） ------------------------------------------------
+    D = P.dynamics
+    vel_f = (n.velocity / 100.0) ** D.velocity_weight if D.velocity_weight > 0 else 1.0
+    level = D.base * vel_f
+    if ctx.arc_pos is not None:
+        level *= 1.0 + D.phrase_arc * (ctx.arc_pos - 0.5)
+    dyn = np.full(n_samples, level)
+    if D.enabled:
+        a_ms = D.attack_ms.sample(rng)
+        a_from = D.attack_from.sample(rng)
+        ta = np.clip(t / max(a_ms / 1000.0, hop_s), 0, 1)
+        ta = ta * ta * (3 - 2 * ta)
+        shape = a_from + (1.0 - a_from) * ta
+        slope = D.sustain_slope.sample(rng)
+        shape *= np.clip(1.0 + slope * t, 0.2, 2.0)
+        if ctx.next_legato is not None and duration_s is None and not ctx.next_legato:
+            r_ms = D.release_ms.sample(rng)
+            r_to = D.release_to.sample(rng)
+            rdur = min(r_ms / 1000.0, dur * 0.5)
+            tr = np.clip((t - (dur - rdur)) / max(rdur, hop_s), 0, 1)
+            shape *= 1.0 - (1.0 - r_to) * tr * tr
+            params.update(dyn_release_ms=r_ms, dyn_release_to=r_to)
+        if D.wobble > 0:
+            shape *= 1.0 + D.wobble * _lowpass_noise(rng, n_samples, hop_s, 0.5)
+        dyn = level * shape
+        params.update(dyn_level=level, dyn_attack_ms=a_ms, dyn_attack_from=a_from, dyn_sustain_slope=slope)
+    dyn = np.clip(dyn, D.min, D.max)
+    # amount で「平坦（一定レベル）」との間を補間する
+    dyn = level * (1.0 - amount) + dyn * amount
+
+    # --- タイミング（オフライン専用。リアルタイムでは duration_s が渡るので付けない） ----
+    T = P.timing
+    shift_ms = 0.0
+    dur_delta_ms = 0.0
+    if T.enabled and duration_s is None:
+        shift_ms = T.onset_ms.sample(rng)
+        if legato:
+            shift_ms -= T.legato_lead_ms.sample(rng)
+        if ctx.phrase_first:
+            shift_ms += T.phrase_first_delay_ms.sample(rng)
+        if ctx.next_legato is False:
+            dur_delta_ms = -min(T.detach_gap_ms.sample(rng), dur * 1000 * 0.3)
+    params["timing_shift_ms"] = shift_ms * amount
+    params["timing_duration_delta_ms"] = dur_delta_ms * amount
+
     end_track = parts["intonation"] + parts["drift"] + parts["release"]
     parts = {k: v * amount for k, v in parts.items()}
     cents = sum(parts.values())
-    return NoteContour(note=n, t=t, cents=cents, parts=parts, vib_env=vib_env * amount, params=params, end_track=end_track)
+    return NoteContour(note=n, t=t, cents=cents, parts=parts, vib_env=vib_env * amount, params=params, end_track=end_track, dyn=dyn)
 
 
 def generate_contour(
@@ -244,6 +292,23 @@ def generate_contour(
     split_phrases(notes, gap_s=phrase_gap_s)
     max_gap = profile.transition.max_gap_ms / 1000.0
 
+    # フレーズ内の位置（山までの進み具合）
+    arc: dict[int, float] = {}
+    if lookahead:
+        by_phrase: dict[int, list[int]] = {}
+        for i, n in enumerate(notes):
+            by_phrase.setdefault(n.phrase, []).append(i)
+        for idxs in by_phrase.values():
+            cl = next((j for j, i in enumerate(idxs) if notes[i].is_climax), None)
+            L = len(idxs)
+            for j, i in enumerate(idxs):
+                if L <= 2 or cl is None:
+                    arc[i] = 0.5
+                elif j <= cl:
+                    arc[i] = j / max(cl, 1)
+                else:
+                    arc[i] = 1.0 - (j - cl) / max(L - 1 - cl, 1)
+
     out: list[NoteContour] = []
     ctx = NoteContext()
     for idx, n in enumerate(notes):
@@ -251,11 +316,15 @@ def generate_contour(
         if lookahead:
             ctx.next_legato = nxt is not None and (nxt.onset - n.offset) <= max_gap
             ctx.phrase_end = n.phrase_pos in ("last", "single")
+            ctx.phrase_first = n.phrase_pos in ("first", "single")
             ctx.is_climax = n.is_climax
+            ctx.arc_pos = arc.get(idx)
         else:
             ctx.next_legato = False  # 次の音は不明: リリースは「単独音」扱いで付ける
             ctx.phrase_end = False
+            ctx.phrase_first = False
             ctx.is_climax = False
+            ctx.arc_pos = None
         nc = generate_note(n, ctx, profile, rng, amount=amount)
         out.append(nc)
         ctx = NoteContext(prev_pitch=n.pitch, gap_s=(nxt.onset - n.offset) if nxt else 1e9,

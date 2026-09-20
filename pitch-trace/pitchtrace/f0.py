@@ -17,6 +17,7 @@ class F0Track:
     f0_hz: np.ndarray        # Hz。無声は nan
     confidence: np.ndarray   # 0..1（1 - CMNDF 最小値）
     hop_s: float
+    rms: np.ndarray | None = None  # フレームごとの RMS（ダイナミクス解析用）
 
     @property
     def voiced(self) -> np.ndarray:
@@ -55,6 +56,7 @@ def yin_f0(
     N = 1 << int(np.ceil(np.log2(2 * L)))
     f0 = np.full(n_frames, np.nan)
     conf = np.zeros(n_frames)
+    rms_all = np.zeros(n_frames)
     taus = np.arange(max_lag + 1)
 
     for b0 in range(0, n_frames, batch):
@@ -63,6 +65,7 @@ def yin_f0(
         frames = x[idx]
         a = frames[:, :W]
         rms = np.sqrt((a ** 2).mean(axis=1))
+        rms_all[b0:b1] = rms
         # 相関 corr[tau] = sum_j a[j] * frames[j + tau]
         A = np.fft.rfft(a, N, axis=1)
         B = np.fft.rfft(frames, N, axis=1)
@@ -103,4 +106,4 @@ def yin_f0(
             conf[b0 + i] = max(0.0, 1.0 - row[tau])
 
     times = (np.arange(n_frames) * hop + W / 2) / sr
-    return F0Track(times=times, f0_hz=f0, confidence=conf, hop_s=hop / sr)
+    return F0Track(times=times, f0_hz=f0, confidence=conf, hop_s=hop / sr, rms=rms_all)

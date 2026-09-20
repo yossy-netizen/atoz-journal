@@ -51,7 +51,11 @@ def synthesize(contour: Contour, sr: int = 44100, harmonics: int = 8, tail_s: fl
         for k, a in enumerate(amps):
             if midi_to_hz(n.pitch) * (k + 1) < sr / 2:
                 sig += a * np.sin(phase * (k + 1))
-        sig *= _adsr(n_samp, sr) * (n.velocity / 127.0)
+        vel_gain = n.velocity / 127.0
+        if nc.dyn is not None:
+            # ダイナミクスは相対レベルなので、音符内の最大値で正規化して形だけ反映する
+            vel_gain = vel_gain * np.interp(t_samp, nc.t, nc.dyn) / max(float(nc.dyn.max()), 1e-6)
+        sig *= _adsr(n_samp, sr) * vel_gain
         start = int(n.onset * sr)
         out[start:start + n_samp] += sig
     peak = np.abs(out).max()

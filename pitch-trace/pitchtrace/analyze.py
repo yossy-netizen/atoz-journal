@@ -314,6 +314,29 @@ def estimate_note_params(notes: list[AnalyzedNote], track: F0Track, max_gap_s: f
         if not next_legato:
             tail = dev[-max(min(int(0.04 / hop), L), 1):]
             p["release_cents"] = float(np.mean(tail)) - into
+
+        # --- ダイナミクス（RMS 包絡） ---
+        if track.rms is not None and len(track.rms):
+            i0 = int(np.searchsorted(track.times, n.onset))
+            i1 = max(int(np.searchsorted(track.times, n.offset)), i0 + 2)
+            env = track.rms[i0:i1]
+            peak = float(env.max()) if len(env) else 0.0
+            if peak > 0 and len(env) >= 4:
+                rel = env / peak
+                # アタック: ピーク（の 90%）に達するまでの時間と、開始レベル
+                k90 = int(np.argmax(rel >= 0.9))
+                p["dyn_attack_ms"] = float(k90 * hop * 1000.0)
+                p["dyn_attack_from"] = float(np.clip(rel[0] / max(rel[min(k90, len(rel) - 1)], 1e-6), 0.0, 1.0))
+                # サステインの傾き（1 秒あたりの比率）: 安定区間の線形回帰
+                s0 = min(max(k90, a0), len(rel) - 2)
+                s1 = max(len(rel) - int(0.06 / hop), s0 + 2) if not next_legato else len(rel)
+                seg = rel[s0:s1]
+                if len(seg) >= 4:
+                    tt = np.arange(len(seg)) * hop
+                    slope, icpt = np.polyfit(tt, seg, 1)
+                    p["dyn_sustain_slope"] = float(slope / max(icpt, 1e-6))
+                if not next_legato and len(rel) - s1 >= 2:
+                    p["dyn_release_to"] = float(np.clip(rel[-1] / max(rel[s1 - 1], 1e-6), 0.0, 1.0))
         n.params = {k: (bool(v) if isinstance(v, (bool, np.bool_)) else float(v) if isinstance(v, (int, float, np.floating)) else v) for k, v in p.items()}
 
 
@@ -396,6 +419,15 @@ def build_profile(notes: list[AnalyzedNote], base: Profile | None = None, name: 
         P.release.prob = len(rel) / len(rel_all)
     if rel:
         P.release.cents = _dist(rel, P.release.cents)
+
+    dyn_att = [p["dyn_attack_ms"] for p in ps if "dyn_attack_ms" in p]
+    if dyn_att:
+        P.dynamics.attack_ms = _dist(dyn_att, P.dynamics.attack_ms, 5.0, None)
+        P.dynamics.attack_from = _dist([p["dyn_attack_from"] for p in ps if "dyn_attack_from" in p], P.dynamics.attack_from, 0.05, 1.0)
+        P.dynamics.sustain_slope = _dist([p["dyn_sustain_slope"] for p in ps if "dyn_sustain_slope" in p], P.dynamics.sustain_slope, -0.6, 0.6)
+        rel_to = [p["dyn_release_to"] for p in ps if "dyn_release_to" in p]
+        if rel_to:
+            P.dynamics.release_to = _dist(rel_to, P.dynamics.release_to, 0.02, 1.0)
 
     P.stats = {
         "n_notes": len(notes),

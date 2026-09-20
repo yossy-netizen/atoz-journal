@@ -63,6 +63,8 @@ def render_midi(
     channel: int = 0,
     legato_overlap_s: float = 0.0,
     max_events_per_s: float | None = None,
+    dynamics: bool = True,
+    timing: bool = True,
 ) -> mido.MidiFile:
     """Contour を MIDI ファイルに書き出す。
 
@@ -70,6 +72,8 @@ def render_midi(
     bend_range: 半音単位のベンドレンジ（音源側と揃える）
     legato_overlap_s: single モードで残す重なり（レガート検出に重なりが要る音源向け）
     max_events_per_s: ベンド・CC イベントの上限密度（None = hop ごと）
+    dynamics: ダイナミクス（profile.dynamics.cc_number の CC）を書くか
+    timing: マイクロタイミング（ノートの前後移動・短縮）を適用するか
     """
     if mode not in ("single", "mpe"):
         raise ValueError("mode は 'single' か 'mpe'")
@@ -108,17 +112,29 @@ def render_midi(
     min_dt = (1.0 / max_events_per_s) if max_events_per_s else 0.0
 
     notes = contour.notes
+    use_dyn = dynamics and profile.dynamics.enabled
+    dyn_cc = profile.dynamics.cc_number
+    # タイミング: 各音の開始/終了をずらす。順序が入れ替わらないよう、前の音の開始より前には出さない
+    starts = [nc.note.onset for nc in notes]
+    ends = [nc.note.offset for nc in notes]
+    if timing and profile.timing.enabled:
+        for i, nc in enumerate(notes):
+            sh = nc.params.get("timing_shift_ms", 0.0) / 1000.0
+            dd = nc.params.get("timing_duration_delta_ms", 0.0) / 1000.0
+            starts[i] = max(nc.note.onset + sh, 0.0, (starts[i - 1] + 0.01) if i > 0 else 0.0)
+            ends[i] = max(nc.note.offset + sh + dd, starts[i] + 0.02)
     for i, nc in enumerate(notes):
         n = nc.note
         ch = member_channels[i % len(member_channels)]
-        onset = n.onset
-        end = n.offset
+        onset = starts[i]
+        end = ends[i]
         nxt = notes[i + 1].note if i + 1 < len(notes) else None
+        nxt_onset = starts[i + 1] if i + 1 < len(notes) else None
         if mode == "single" and nxt is not None:
             # 同音の連打は重ねられない（前の note_off が次の音を消してしまう）
             overlap = 0.0 if nxt.pitch == n.pitch else legato_overlap_s
-            if end > nxt.onset + overlap:
-                end = max(nxt.onset + overlap, onset + 0.01)
+            if end > nxt_onset + overlap:
+                end = max(nxt_onset + overlap, onset + 0.01)
 
         cents = nc.cents - (nc.parts["vibrato"] if use_cc else 0.0)
         bend = cents_to_bend(cents, bend_range)
@@ -147,11 +163,23 @@ def render_midi(
                     continue
                 events.append((sec2tick(t_abs), PRI_BEND, mido.Message("control_change", channel=ch, control=cc_num, value=cc)))
                 last_cc, last_t = cc, t_abs
+        if use_dyn and nc.dyn is not None:
+            last_cc = None
+            last_t = -1e9
+            for k, (ti, lv) in enumerate(zip(nc.t, nc.dyn)):
+                t_abs = onset + ti
+                if t_abs >= end:
+                    break
+                cc = int(np.clip(round(lv * 127), 0, 127))
+                if cc == last_cc or (k > 0 and (t_abs - last_t) < min_dt):
+                    continue
+                events.append((sec2tick(t_abs), PRI_BEND, mido.Message("control_change", channel=ch, control=dyn_cc, value=cc)))
+                last_cc, last_t = cc, t_abs
         events.append((sec2tick(onset), PRI_ON, mido.Message("note_on", channel=ch, note=n.pitch, velocity=int(np.clip(n.velocity, 1, 127)))))
         events.append((sec2tick(end), PRI_OFF, mido.Message("note_off", channel=ch, note=n.pitch, velocity=0)))
         # ノート終了後にベンドを 0 に戻す（次の音に備える）。single モードで次の音が
         # 終了前に同じチャンネルで始まっている（重なり）ときは、その音のベンドを壊すので出さない
-        if not (mode == "single" and nxt is not None and nxt.onset <= end):
+        if not (mode == "single" and nxt is not None and nxt_onset <= end):
             events.append((sec2tick(end), PRI_RESET, mido.Message("pitchwheel", channel=ch, pitch=0)))
 
     events.sort(key=lambda e: (e[0], e[1]))

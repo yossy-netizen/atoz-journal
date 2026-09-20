@@ -146,3 +146,15 @@ def test_all_notes_off_resets_bend_with_pending_off():
     tr.all_notes_off(1.02)
     assert out[-1].type == "pitchwheel" and out[-1].pitch == 0
     assert tr._pending_off == [] and tr.active == {}
+
+
+def test_realtime_emits_dynamics_cc():
+    tr, out = make()
+    tr.handle(on(64), 0.0)
+    tr.tick(1.0)
+    cc = [m for m in out if m.type == "control_change" and m.control == 11]
+    assert len(cc) > 3
+    tr2, out2 = make(dynamics=False)
+    tr2.handle(on(64), 0.0)
+    tr2.tick(1.0)
+    assert not any(m.type == "control_change" and m.control == 11 for m in out2)

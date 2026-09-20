@@ -34,6 +34,7 @@ class _Active:
     next_k: int = 0          # 次に出すサンプル番号
     last_bend: int | None = None
     last_cc: int | None = None
+    last_dyn: int | None = None
 
 
 @dataclass
@@ -48,6 +49,7 @@ class RealtimeTracer:
     max_note_s: float = 30.0        # 1 音あたり生成しておく最大長
     legato_overlap_s: float = 0.0   # single モードで前の音を残す時間
     passthrough: bool = True        # ノート以外のメッセージをそのまま通す
+    dynamics: bool = True           # ダイナミクス CC を出す
 
     rng: np.random.Generator = field(init=False)
     active: dict[int, _Active] = field(init=False, default_factory=dict)  # pitch → 状態
@@ -194,6 +196,11 @@ class RealtimeTracer:
             if cc != a.last_cc:
                 self.send(mido.Message("control_change", channel=a.channel, control=self.profile.output.cc_number, value=cc))
                 a.last_cc = cc
+        if self.dynamics and self.profile.dynamics.enabled and nc.dyn is not None:
+            dv = int(np.clip(round(nc.dyn[k] * 127), 0, 127))
+            if dv != a.last_dyn:
+                self.send(mido.Message("control_change", channel=a.channel, control=self.profile.dynamics.cc_number, value=dv))
+                a.last_dyn = dv
 
     def tick(self, now: float) -> None:
         """now までに出すべきベンド / CC を出す。"""

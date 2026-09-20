@@ -63,7 +63,7 @@ def test_roundtrip_midi_notes(tmp_path):
     p = load_profile("oboe_classical")
     c = generate_contour(notes(), p, seed=0)
     out = tmp_path / "o.mid"
-    render_midi(c, p, out, mode="single", tempo_bpm=100.0)
+    render_midi(c, p, out, mode="single", tempo_bpm=100.0, timing=False)
     loaded, _ = load_midi_notes(out)
     assert [n.pitch for n in loaded] == [60, 64, 67]
     for a, b in zip(loaded, notes()):
@@ -107,6 +107,29 @@ def test_single_mode_repeated_pitch_does_not_overlap(tmp_path):
     ns = make_monophonic([Note(60, 0.0, 0.6), Note(60, 0.5, 0.5)], overlap_s=0.02)
     c = generate_contour(ns, p, seed=0)
     out = tmp_path / "o.mid"
-    render_midi(c, p, out, mode="single", legato_overlap_s=0.02)
+    render_midi(c, p, out, mode="single", legato_overlap_s=0.02, timing=False)
     notes_ev = [(t, m.type) for t, m in _abs_ticks(out) if m.type in ("note_on", "note_off")]
     assert notes_ev == [(0, "note_on"), (960, "note_off"), (960, "note_on"), (1920, "note_off")]
+
+
+def test_dynamics_cc_and_timing(tmp_path):
+    p = load_profile("violin_classical")
+    c = generate_contour(notes(), p, seed=3)
+    out = tmp_path / "o.mid"
+    render_midi(c, p, out, mode="single")
+    msgs = list(mido.MidiFile(out).tracks[0])
+    cc11 = [m for m in msgs if m.type == "control_change" and m.control == 11]
+    assert len(cc11) > 3 and 0 < max(m.value for m in cc11) <= 127
+    # タイミング: ノートの順序は保たれ、開始は元の位置から大きく離れない
+    loaded, _ = load_midi_notes(out)
+    assert [n.pitch for n in loaded] == [60, 64, 67]
+    for a, b in zip(loaded, notes()):
+        assert abs(a.onset - b.onset) < 0.08
+    # 無効化すると CC11 が出ず、タイミングも元通り
+    out2 = tmp_path / "o2.mid"
+    render_midi(c, p, out2, mode="single", dynamics=False, timing=False)
+    msgs2 = list(mido.MidiFile(out2).tracks[0])
+    assert not any(m.type == "control_change" and m.control == 11 for m in msgs2)
+    loaded2, _ = load_midi_notes(out2)
+    for a, b in zip(loaded2, notes()):
+        assert abs(a.onset - b.onset) < 0.005

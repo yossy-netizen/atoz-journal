@@ -115,10 +115,77 @@
     "cents": 1.5,
     "smooth_ms": 15
   },
+  "hop_ms": 5.0,
+  "dynamics": {
+    "enabled": true,
+    "cc_number": 11,
+    "base": 0.78,
+    "velocity_weight": 0.6,
+    "attack_ms": {
+      "mean": 30,
+      "std": 15,
+      "min": 5,
+      "max": 150
+    },
+    "attack_from": {
+      "mean": 0.5,
+      "std": 0.2,
+      "min": 0.1,
+      "max": 1.0
+    },
+    "sustain_slope": {
+      "mean": -0.1,
+      "std": 0.12,
+      "min": -0.6,
+      "max": 0.3
+    },
+    "release_ms": {
+      "mean": 120,
+      "std": 50,
+      "min": 30,
+      "max": 400
+    },
+    "release_to": {
+      "mean": 0.3,
+      "std": 0.15,
+      "min": 0.03,
+      "max": 1.0
+    },
+    "phrase_arc": 0.3,
+    "wobble": 0.05,
+    "min": 0.05,
+    "max": 1.0
+  },
+  "timing": {
+    "enabled": true,
+    "onset_ms": {
+      "mean": 6,
+      "std": 12,
+      "min": -30,
+      "max": 40
+    },
+    "legato_lead_ms": {
+      "mean": 10,
+      "std": 6,
+      "min": 0,
+      "max": 30
+    },
+    "phrase_first_delay_ms": {
+      "mean": 12,
+      "std": 8,
+      "min": 0,
+      "max": 50
+    },
+    "detach_gap_ms": {
+      "mean": 40,
+      "std": 20,
+      "min": 0,
+      "max": 150
+    }
+  },
   "output": {
     "vibrato_lane": "bend",
     "cc_number": 1,
     "cc_full_depth_cents": 50
-  },
-  "hop_ms": 5.0
+  }
 }

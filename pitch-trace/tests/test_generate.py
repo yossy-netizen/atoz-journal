@@ -95,6 +95,7 @@ def test_no_lookahead_ignores_phrase_end():
     # lookahead=False ではクライマックス倍率が掛からない
     p.vibrato.prob = 1.0
     p.vibrato.climax_gain = 3.0
+    p.vibrato.depth_cents.std = 0.0
     la = generate_contour(phrase(), p, seed=2, lookahead=True)
     nl = generate_contour(phrase(), p, seed=2, lookahead=False)
     assert la.notes[2].params["vibrato_depth_cents"] > nl.notes[2].params["vibrato_depth_cents"] * 2.5
@@ -115,3 +116,33 @@ def test_legato_join_is_continuous_for_any_amount():
         c = generate_contour([Note(60, 0.0, 0.5), Note(65, 0.5, 0.5)], p, seed=0, amount=amount)
         prev_end = c.notes[0].cents[-1]
         assert abs(c.notes[1].cents[0] - (-500.0 * amount + prev_end)) < 1e-6
+
+
+def test_dynamics_curve_shape_and_amount():
+    p = load_profile("violin_classical")
+    p.dynamics.wobble = 0.0
+    notes = phrase()
+    c = generate_contour(notes, p, seed=4)
+    for nc in c.notes:
+        assert nc.dyn is not None and len(nc.dyn) == len(nc.t)
+        assert p.dynamics.min <= nc.dyn.min() and nc.dyn.max() <= p.dynamics.max
+        # 発音直後は本来のレベルより小さく、アタック後に上がる
+        assert nc.dyn[0] <= nc.dyn[int(len(nc.dyn) * 0.4)] + 1e-9
+    # 非レガートで終わる音は末尾で減衰する
+    last = c.notes[-1]
+    assert last.dyn[-1] < last.dyn[len(last.dyn) // 2]
+    # amount=0 では一定レベル
+    flat = generate_contour(phrase(), p, seed=4, amount=0.0)
+    for nc in flat.notes:
+        assert np.allclose(nc.dyn, nc.dyn[0])
+
+
+def test_timing_shift_is_bounded_and_off_in_realtime_mode():
+    p = load_profile("alto_sax_jazz")
+    c = generate_contour(phrase(), p, seed=8)
+    for nc in c.notes:
+        assert abs(nc.params["timing_shift_ms"]) <= 80
+    from pitchtrace.generate import NoteContext, generate_note
+    rng = np.random.default_rng(0)
+    rt = generate_note(Note(60, 0.0, 1.0), NoteContext(), p, rng, duration_s=5.0)
+    assert rt.params["timing_shift_ms"] == 0.0 and rt.params["timing_duration_delta_ms"] == 0.0
