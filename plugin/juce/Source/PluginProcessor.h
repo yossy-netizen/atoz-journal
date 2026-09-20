@@ -39,6 +39,10 @@ public:
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }
 
+    // Expose our own bypass as the host bypass so the wrappers don't add a separate one that
+    // would not be part of the saved state (and so the DAW's bypass button is de-clicked too).
+    juce::AudioProcessorParameter* getBypassParameter() const override { return apvts.getParameter(ParamID::bypass); }
+
     const juce::String getName() const override { return JucePlugin_Name; }
     bool acceptsMidi() const override { return false; }
     bool producesMidi() const override { return false; }
