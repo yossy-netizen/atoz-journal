@@ -18,6 +18,7 @@ import mido
 import numpy as np
 
 from .generate import Contour
+from .notes import TempoMap
 from .profile import Profile
 
 
@@ -65,6 +66,10 @@ def render_midi(
     max_events_per_s: float | None = None,
     dynamics: bool = True,
     timing: bool = True,
+    tempo_map: TempoMap | None = None,
+    base_file: mido.MidiFile | None = None,
+    replace_track: int | None = None,
+    track_name: str | None = None,
 ) -> mido.MidiFile:
     """Contour を MIDI ファイルに書き出す。
 
@@ -74,18 +79,46 @@ def render_midi(
     max_events_per_s: ベンド・CC イベントの上限密度（None = hop ごと）
     dynamics: ダイナミクス（profile.dynamics.cc_number の CC）を書くか
     timing: マイクロタイミング（ノートの前後移動・短縮）を適用するか
+    tempo_map: 秒 → tick の変換に使うテンポマップ（省略時は tempo_bpm 一定）
+    base_file: 指定すると、そのファイルの他トラックを保持し replace_track 番目を差し替える
+               （テンポマップ・拍子・マーカーはそのまま残る）
     """
     if mode not in ("single", "mpe"):
         raise ValueError("mode は 'single' か 'mpe'")
-    mf = mido.MidiFile(ticks_per_beat=ticks_per_beat)
-    track = mido.MidiTrack()
-    mf.tracks.append(track)
-    tempo = mido.bpm2tempo(tempo_bpm)
-    track.append(mido.MetaMessage("set_tempo", tempo=tempo, time=0))
-    track.append(mido.MetaMessage("track_name", name=f"PitchTrace {profile.name}", time=0))
+    if base_file is not None:
+        ticks_per_beat = base_file.ticks_per_beat
+        if tempo_map is None:
+            tempo_map = TempoMap.from_midifile(base_file)
+        mf = mido.MidiFile(ticks_per_beat=ticks_per_beat, type=base_file.type)
+        for tr in base_file.tracks:
+            mf.tracks.append(tr.copy())
+        track = mido.MidiTrack()
+        if replace_track is not None and 0 <= replace_track < len(mf.tracks):
+            # 差し替え先の非ノート情報（トラック名・プログラムチェンジ等）は残す
+            for m in base_file.tracks[replace_track]:
+                if m.type in ("track_name", "program_change", "set_tempo", "time_signature", "key_signature", "marker"):
+                    track.append(m.copy(time=0))
+            mf.tracks[replace_track] = track
+        else:
+            mf.tracks.append(track)
+        if track_name is None and not any(m.type == "track_name" for m in track):
+            track.append(mido.MetaMessage("track_name", name=f"PitchTrace {profile.name}", time=0))
+    else:
+        if tempo_map is None:
+            tempo_map = TempoMap.constant(ticks_per_beat, tempo_bpm)
+        else:
+            ticks_per_beat = tempo_map.ticks_per_beat
+        mf = mido.MidiFile(ticks_per_beat=ticks_per_beat)
+        track = mido.MidiTrack()
+        mf.tracks.append(track)
+        for tick, tempo in tempo_map.changes:
+            track.append(mido.MetaMessage("set_tempo", tempo=tempo, time=0))
+            break  # 単独出力では先頭テンポのみ（複数のテンポは下で events として書く）
+        track.append(mido.MetaMessage("track_name", name=track_name or f"PitchTrace {profile.name}", time=0))
+    if track_name is not None:
+        track.append(mido.MetaMessage("track_name", name=track_name, time=0))
 
-    def sec2tick(s: float) -> int:
-        return int(round(mido.second2tick(s, ticks_per_beat, tempo)))
+    sec2tick = tempo_map.sec2tick
 
     events: list[tuple[int, int, mido.Message]] = []  # (tick, priority, msg)
     # 同 tick での並び順:
@@ -181,6 +214,10 @@ def render_midi(
         # 終了前に同じチャンネルで始まっている（重なり）ときは、その音のベンドを壊すので出さない
         if not (mode == "single" and nxt is not None and nxt_onset <= end):
             events.append((sec2tick(end), PRI_RESET, mido.Message("pitchwheel", channel=ch, pitch=0)))
+
+    if base_file is None:
+        for tick, tempo in tempo_map.changes[1:]:
+            events.append((tick, PRI_BEND, mido.MetaMessage("set_tempo", tempo=tempo)))
 
     events.sort(key=lambda e: (e[0], e[1]))
     last_tick = 0

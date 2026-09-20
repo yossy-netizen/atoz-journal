@@ -10,7 +10,8 @@
 
 | コマンド | 内容 |
 |---|---|
-| `pitchtrace render in.mid out.mid --profile violin_classical` | MIDI に表情（ピッチベンド）を付ける。`--mode mpe` で MPE、`--vibrato-lane cc` でビブラートを CC1 に分離 |
+| `pitchtrace info song.mid` | トラック一覧（番号・音符数・音域・テンポチェンジ） |
+| `pitchtrace render in.mid out.mid --profile violin_classical` | MIDI に表情（ピッチベンド + CC11）を付ける。`--track N` で曲全体の MIDI の 1 トラックだけ差し替え（他トラックとテンポマップは保持）。`--mode mpe` で MPE、`--vibrato-lane cc` でビブラートを CC1 に分離 |
 | `pitchtrace analyze solo.wav -o my_violin.json --base violin_classical` | ソロ録音（無伴奏・単旋律）からプロファイルを推定。出力はそのまま `--profile` に渡せる |
 | `pitchtrace demo out_dir --profile alto_sax_jazz` | 静止ピッチ版とトレース版の WAV / MIDI を出力（A/B 試聴用） |
 | `pitchtrace dump in.mid out.csv` | 生成したカーブを成分ごとに CSV へ（可視化・検証用） |

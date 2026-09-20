@@ -1,6 +1,7 @@
 """コマンドライン:
 
   pitchtrace profiles                       組み込みプロファイル一覧
+  pitchtrace info    in.mid                 トラック一覧（--track の番号を調べる）
   pitchtrace render  in.mid out.mid [opts]  MIDI に表情（ピッチベンド等）を付ける
   pitchtrace analyze in.wav -o prof.json    ソロ録音からプロファイルを作る
   pitchtrace demo    out_dir [opts]         静止ピッチ / トレース済みの A/B 用 WAV と MIDI を作る
@@ -22,7 +23,7 @@ import numpy as np
 
 from .analyze import analyze_audio, build_profile
 from .generate import generate_contour
-from .notes import Note, load_midi_notes, make_monophonic
+from .notes import Note, TempoMap, describe_midi, load_midi_notes, make_monophonic
 from .profile import list_builtin_profiles, load_profile
 from .render_midi import render_midi
 from .synth import read_wav, synthesize, write_wav
@@ -41,19 +42,16 @@ def _add_render_opts(ap: argparse.ArgumentParser) -> None:
     ap.add_argument("--no-dynamics", action="store_true", help="ダイナミクス CC を出さない")
     ap.add_argument("--no-timing", action="store_true", help="マイクロタイミングを適用しない")
     ap.add_argument("--dyn-cc", type=int, default=None, help="ダイナミクスの CC 番号を上書き（既定 11）")
-    ap.add_argument("--tempo", type=float, default=None, help="出力 MIDI のテンポ（秒→tick 変換用）。既定は入力 MIDI の最初のテンポ、なければ 120")
+    ap.add_argument("--tempo", type=float, default=None, help="出力テンポを固定（既定は入力 MIDI のテンポマップを継承。テンポチェンジも保持）")
 
 
-def _output_tempo(args, mf: mido.MidiFile | None) -> float:
-    """--tempo が無ければ入力 MIDI の最初のテンポを使う（DAW 上で小節グリッドを揃えるため）。"""
+def _tempo_map(args, mf: mido.MidiFile | None) -> TempoMap:
+    """--tempo があればそれ一定、無ければ入力 MIDI のテンポマップ（DAW 上で小節グリッドを揃えるため）。"""
     if args.tempo is not None:
-        return args.tempo
+        return TempoMap.constant(mf.ticks_per_beat if mf is not None else 960, args.tempo)
     if mf is not None:
-        for tr in mf.tracks:
-            for msg in tr:
-                if msg.type == "set_tempo":
-                    return float(mido.tempo2bpm(msg.tempo))
-    return 120.0
+        return TempoMap.from_midifile(mf)
+    return TempoMap.constant(960, 120.0)
 
 
 def _prepare(args, notes: list[Note]):
@@ -81,13 +79,31 @@ def cmd_render(args) -> int:
         print("音符が見つかりません", file=sys.stderr)
         return 1
     profile, contour = _prepare(args, notes)
+    keep = args.track is not None and not args.only_track
     render_midi(contour, profile, args.output, mode=args.mode, bend_range=args.bend_range,
                 legato_overlap_s=args.legato_overlap_ms / 1000.0, max_events_per_s=args.max_events_per_s,
-                tempo_bpm=_output_tempo(args, mf), dynamics=not args.no_dynamics, timing=not args.no_timing)
+                tempo_map=_tempo_map(args, mf), dynamics=not args.no_dynamics, timing=not args.no_timing,
+                base_file=mf if keep else None, replace_track=args.track if keep else None)
     n_vib = sum(1 for nc in contour.notes if "vibrato_rate_hz" in nc.params)
     n_port = sum(1 for nc in contour.notes if nc.params.get("portamento"))
     dyn = "off" if args.no_dynamics or not profile.dynamics.enabled else f"CC{profile.dynamics.cc_number}"
     print(f"{len(notes)} 音符 → {args.output}  (profile={profile.name}, mode={args.mode}, vibrato {n_vib}, portamento {n_port}, dynamics {dyn})")
+    return 0
+
+
+def cmd_info(args) -> int:
+    rows = describe_midi(args.input)
+    mf = mido.MidiFile(args.input)
+    tm = TempoMap.from_midifile(mf)
+    print(f"{args.input}: type {mf.type}, {mf.ticks_per_beat} ticks/beat, tempo {tm.initial_bpm:.2f} bpm"
+          + (f" (+{len(tm.changes) - 1} 変化)" if len(tm.changes) > 1 else ""))
+    print(f"{'track':>5}  {'notes':>5}  {'ch':<8} {'range':<9} {'start':>7} {'end':>7}  name")
+    for r in rows:
+        rng = f"{r['pitch_range'][0]}-{r['pitch_range'][1]}" if r["pitch_range"] else "-"
+        ch = ",".join(str(c + 1) for c in r["channels"]) or "-"
+        st = f"{r['start_s']:.2f}" if r["start_s"] is not None else "-"
+        print(f"{r['track']:>5}  {r['notes']:>5}  {ch:<8} {rng:<9} {st:>7} {r['end_s']:>7.2f}  {r['name']}")
+    print("render で使うトラックは --track N（0 始まり）で指定。他のトラックは保持される")
     return 0
 
 
@@ -152,7 +168,7 @@ def cmd_demo(args) -> int:
     flat_args = argparse.Namespace(**{**vars(args), "amount": 0.0})
     _, flat = _prepare(flat_args, notes)
     tag = profile.name
-    render_kw = dict(mode=args.mode, bend_range=args.bend_range, tempo_bpm=_output_tempo(args, mf),
+    render_kw = dict(mode=args.mode, bend_range=args.bend_range, tempo_map=_tempo_map(args, mf),
                      legato_overlap_s=args.legato_overlap_ms / 1000.0, max_events_per_s=args.max_events_per_s,
                      dynamics=not args.no_dynamics, timing=not args.no_timing)
     render_midi(contour, profile, out / f"demo_{tag}.mid", **render_kw)
@@ -205,9 +221,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("profiles", help="組み込みプロファイル一覧").set_defaults(func=cmd_profiles)
 
+    i = sub.add_parser("info", help="MIDI ファイルのトラック一覧")
+    i.add_argument("input"); i.set_defaults(func=cmd_info)
+
     r = sub.add_parser("render", help="MIDI に表情を付ける")
     r.add_argument("input"); r.add_argument("output")
-    r.add_argument("--track", type=int, default=None); r.add_argument("--channel", type=int, default=None)
+    r.add_argument("--track", type=int, default=None, help="処理するトラック（0 始まり）。指定時は他トラックを保持して差し替える")
+    r.add_argument("--channel", type=int, default=None, help="処理する MIDI チャンネル（0 始まり）")
+    r.add_argument("--only-track", action="store_true", help="--track 指定時に他トラックを捨てて単独ファイルにする")
     _add_render_opts(r); r.set_defaults(func=cmd_render)
 
     d = sub.add_parser("dump", help="カーブを CSV に書き出す")

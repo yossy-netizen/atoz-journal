@@ -30,3 +30,17 @@ def test_cli_demo_render_analyze_roundtrip(tmp_path):
 def test_cli_profiles(capsys):
     assert main(["profiles"]) == 0
     assert "violin_classical" in capsys.readouterr().out
+
+
+def test_cli_info_and_track_render(tmp_path):
+    from tests.test_render_midi import _tempo_change_file
+    src = tmp_path / "song.mid"
+    _tempo_change_file(src)
+    assert main(["info", str(src)]) == 0
+    out = tmp_path / "out.mid"
+    assert main(["render", str(src), str(out), "--track", "2", "--profile", "oboe_classical"]) == 0
+    import mido
+    mf = mido.MidiFile(out)
+    assert len(mf.tracks) == 3
+    assert any(m.type == "pitchwheel" for m in mf.tracks[2])
+    assert not any(m.type == "pitchwheel" for m in mf.tracks[1])

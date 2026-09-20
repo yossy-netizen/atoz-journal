@@ -23,10 +23,13 @@ bash scripts/setup_mac.sh --live
 
 ### A. オフライン: MIDI ファイルに表情を付けて DAW に読み込む（まずはこちらから）
 
-1. DAW でメロディトラックを MIDI ファイルに書き出す（単旋律）
+1. DAW でメロディトラックを MIDI ファイルに書き出す（単旋律）。曲全体のマルチトラック MIDI でもよい
 2. 変換する
 
    ```bash
+   pitchtrace info song.mid                       # トラック番号と音符数を確認
+   pitchtrace render song.mid song_traced.mid --track 2 --profile violin_classical
+   #   → トラック 2 だけ表情付きに差し替え、他トラックとテンポチェンジはそのまま保持
    pitchtrace render melody.mid melody_traced.mid --profile violin_classical --bend-range 12
    # MPE 対応音源なら
    pitchtrace render melody.mid melody_traced.mid --profile violin_classical --mode mpe
