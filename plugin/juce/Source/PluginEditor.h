@@ -69,6 +69,7 @@ private:
     CVRiderAudioProcessor& processor;
     CVRiderLookAndFeel lnf;
 
+    juce::ComboBox presetBox;
     juce::ComboBox monitorBox;
     juce::ToggleButton bypassButton { "Bypass" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> monitorAttachment;

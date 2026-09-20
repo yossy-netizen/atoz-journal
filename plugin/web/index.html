@@ -65,6 +65,7 @@
       <button id="btnStop" disabled>■ 停止</button>
       <label class="check"><input type="checkbox" id="loop" checked> ループ</label>
       <button id="btnExport" disabled>⤓ 書き出し (WAV 24bit)</button>
+      <label class="check">プリセット <select id="preset"></select></label>
       <span class="status" id="status">ファイルを選ぶか、テスト信号を押してください。</span>
     </div>
   </section>
@@ -144,6 +145,17 @@ const PARAMS = {
   ],
 };
 
+// Factory presets — keep in sync with plugin/cpp/Presets.h (values not listed fall back to the defaults)
+const PRESETS = {
+  'Default':     {},
+  'Lead Vocal':  { vowelTarget: -18, vowelRange: 8, vowelAttack: 40, vowelRelease: 250, consTarget: -24, consRange: 8, consAttack: 1.5, consRelease: 40, consTrim: -1 },
+  'Gentle':      { vowelRange: 4, vowelAttack: 100, vowelRelease: 500, consRange: 3, consAttack: 3, consRelease: 60 },
+  'De-ess Only': { vowelRange: 0, consTarget: -26, consRange: 10, consAttack: 1, consRelease: 30, consTrim: -2, sensitivity: 2 },
+  'Clarity':     { vowelRange: 3, consTarget: -18, consRange: 8, consTrim: 2 },
+  'Breathy':     { sensitivity: -4, splitFreq: 5000, vowelTarget: -20, vowelRange: 6, vowelAttack: 80, vowelRelease: 400, consRange: 4 },
+  'Narration':   { vowelTarget: -20, vowelRange: 10, vowelAttack: 30, vowelRelease: 200, consTarget: -26, consRange: 8 },
+};
+
 const $ = (id) => document.getElementById(id);
 const status = (msg, err = false) => { const s = $('status'); s.textContent = msg; s.className = 'status' + (err ? ' err' : ''); };
 
@@ -179,10 +191,17 @@ function currentParams() {
 function pushAllParams() { for (const [k, v] of Object.entries(currentParams())) setParam(k, v); }
 $('monitor').addEventListener('change', () => setParam('monitor', +$('monitor').value));
 $('bypass').addEventListener('change', () => setParam('bypass', $('bypass').checked ? 1 : 0));
-$('btnReset').addEventListener('click', () => {
-  document.querySelectorAll('input[type=range]').forEach((el) => { el.value = el.dataset.def; el.dispatchEvent(new Event('input')); });
+function applyPreset(name) {
+  const preset = PRESETS[name] || {};
+  document.querySelectorAll('input[type=range]').forEach((el) => {
+    el.value = preset[el.id] !== undefined ? preset[el.id] : el.dataset.def;
+    el.dispatchEvent(new Event('input'));
+  });
   $('monitor').value = '0'; $('bypass').checked = false; pushAllParams();
-});
+}
+for (const name of Object.keys(PRESETS)) { const o = document.createElement('option'); o.value = name; o.textContent = name; $('preset').appendChild(o); }
+$('preset').addEventListener('change', () => applyPreset($('preset').value));
+$('btnReset').addEventListener('click', () => { $('preset').value = 'Default'; applyPreset('Default'); });
 
 async function ensureContext() {
   if (ctx) { if (ctx.state === 'suspended') await ctx.resume(); return; }

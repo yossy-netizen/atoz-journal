@@ -28,6 +28,13 @@ await page.fill('#vowelTarget', '-12');
 await page.dispatchEvent('#vowelTarget', 'input');
 check((await page.textContent('#vowelTargetOut')).startsWith('-12.0'), 'slider readout follows the slider');
 
+// presets: selecting one rewrites the sliders, reset restores the defaults
+await page.selectOption('#preset', 'De-ess Only');
+check((await page.inputValue('#vowelRange')) === '0' && (await page.inputValue('#consTarget')) === '-26', 'preset "De-ess Only" applies its values to the sliders');
+await page.click('#btnReset');
+check((await page.inputValue('#vowelRange')) === '6' && (await page.inputValue('#preset')) === 'Default', 'reset restores the defaults');
+await page.fill('#vowelTarget', '-12'); await page.dispatchEvent('#vowelTarget', 'input');
+
 // export
 const [download] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), page.click('#btnExport')]);
 const file = await download.path();

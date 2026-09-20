@@ -9,15 +9,26 @@ Waves Vocal Rider のような「ゲインライド」を、歯擦音だけ抑�
 plugin/
 ├── cpp/            DSP コア（ヘッダのみ・依存なし・C++17）と挙動テスト
 │   ├── CVRider.h
-│   └── test/test_cvrider.cpp
+│   ├── Presets.h
+│   └── test/（test_cvrider.cpp, test_phonemes.cpp, test_util.h）
 ├── juce/           DAW 用プラグイン（VST3 / AU / Standalone、JUCE 8 + CMake）
 ├── web/            ブラウザ版デモ（AudioWorklet 移植 + UI + WAV 書き出し）と Playwright テスト
+├── docs/           マニュアル・説明資料・周辺知識・変更履歴
 └── README.md
 ```
 
 CI（`.github/workflows/plugin-tests.yml`）で C++ テスト、Web テスト、JUCE の Linux ビルドが `plugin/` 変更時に走ります。
 
 DSP コアは `cpp/CVRider.h` が正本で、JUCE 版は薄いラッパー、Web 版は同じ信号処理を JS に移植したものです。
+
+**ドキュメント**（`docs/`）
+
+| 読者 | ファイル |
+|---|---|
+| エンジニア・上級ユーザー | [docs/manual.md](docs/manual.md) — 詳細マニュアル |
+| スタッフ・生徒（中学生でも分かる） | [docs/guide-for-everyone.md](docs/guide-for-everyone.md) — 噛み砕いた説明 |
+| 使う人全員 | [docs/background.md](docs/background.md) — 周辺知識（dB、子音と母音、ライダーとコンプ、レイテンシ、AU / VST3） |
+| 全員 | [docs/CHANGELOG.md](docs/CHANGELOG.md) — 変更履歴 |
 
 ## 信号処理の仕組み
 

@@ -69,6 +69,7 @@ class CVRiderProcessor extends AudioWorkletProcessor {
     this.dc = new DcBlocker();
     this.hp = new BiquadHP();
     this.hfEnv = this.totEnv = this.hfFast = this.hfSlow = this.lvEnv = this.lcEnv = 0;
+    this.lvDbPrev = -120;
     this.c = 0; this.gv = 0; this.gc = 0;
     this.vowelTrimSm = 0; this.consTrimSm = 0; this.outputSm = 0; this.gainSm = 1;
     this.ditherSign = 1;
@@ -83,6 +84,7 @@ class CVRiderProcessor extends AudioWorkletProcessor {
     this.dc.reset();
     this.hp.reset();
     this.hfEnv = this.totEnv = this.hfFast = this.hfSlow = this.lvEnv = this.lcEnv = 0;
+    this.lvDbPrev = -120;
     this.c = this.gv = this.gc = 0;
     for (const d of this.delay) d.fill(0);
     this.writePos = 0;
@@ -152,15 +154,18 @@ class CVRiderProcessor extends AudioWorkletProcessor {
       const trans = smoothstep(5, 11, transDb) * smoothstep(thr - 12, thr - 4, ratioDb);
 
       // ---- level detectors ----
-      this.lvEnv = x2 + this.kLv * (this.lvEnv - x2);
       this.lcEnv = x2 + this.kLc * (this.lcEnv - x2);
-      const lvDb = powToDb(this.lvEnv);
       lcDb = powToDb(this.lcEnv);
-      const idle = lcDb < idleThr && lvDb < idleThr;
+      const idle = lcDb < idleThr && this.lvDbPrev < idleThr;
 
       // below the idle threshold the (broadband) noise floor must not count as a consonant
       const cRaw = idle ? 0 : Math.max(sib, trans);
       c = cRaw + (cRaw > c ? this.kCRise : this.kCFall) * (c - cRaw);
+
+      // the vowel level detector is frozen while a consonant is present (see CVRider.h)
+      this.lvEnv += (idle ? 1 : 1 - c) * (1 - this.kLv) * (x2 - this.lvEnv);
+      const lvDb = powToDb(this.lvEnv);
+      this.lvDbPrev = lvDb;
 
       // ---- riders ----
       let gvT = 0, gcT = 0;

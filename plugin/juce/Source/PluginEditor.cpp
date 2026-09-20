@@ -172,6 +172,14 @@ CVRiderAudioProcessorEditor::CVRiderAudioProcessorEditor(CVRiderAudioProcessor& 
       outputGroup(p.getState(), "Output", ui::neutral, { { ParamID::output, "Output" } }) {
     setLookAndFeel(&lnf);
 
+    for (int i = 0; i < p.getNumPrograms(); ++i) presetBox.addItem("Preset: " + p.getProgramName(i), i + 1);
+    presetBox.setSelectedId(p.getCurrentProgram() + 1, juce::dontSendNotification);
+    presetBox.onChange = [this] {
+        const int idx = presetBox.getSelectedId() - 1;
+        if (idx >= 0 && idx != processor.getCurrentProgram()) processor.setCurrentProgram(idx);
+    };
+    addAndMakeVisible(presetBox);
+
     monitorBox.addItemList({ "Monitor: Off", "Monitor: Consonants", "Monitor: Vowels" }, 1);
     monitorAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.getState(), ParamID::monitor, monitorBox);
     bypassAttachment  = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.getState(), ParamID::bypass, bypassButton);
@@ -193,6 +201,8 @@ CVRiderAudioProcessorEditor::CVRiderAudioProcessorEditor(CVRiderAudioProcessor& 
 CVRiderAudioProcessorEditor::~CVRiderAudioProcessorEditor() { setLookAndFeel(nullptr); }
 
 void CVRiderAudioProcessorEditor::timerCallback() {
+    if (presetBox.getSelectedId() != processor.getCurrentProgram() + 1)   // host changed the program
+        presetBox.setSelectedId(processor.getCurrentProgram() + 1, juce::dontSendNotification);
     meters = processor.getMeters();
     bool any = false;
     processor.readMeterFrames(meterReadPos, [&](const cvrider::Meters& m) { scope.push(m); any = true; });
@@ -206,6 +216,8 @@ void CVRiderAudioProcessorEditor::resized() {
     auto header = area.removeFromTop(34);
     bypassButton.setBounds(header.removeFromRight(90));
     monitorBox.setBounds(header.removeFromRight(180).reduced(0, 4));
+    header.removeFromRight(8);
+    presetBox.setBounds(header.removeFromRight(170).reduced(0, 4));
     area.removeFromTop(8);
 
     auto meterPanel = area.removeFromTop(150);

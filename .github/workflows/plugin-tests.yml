@@ -17,6 +17,8 @@ jobs:
         run: |
           g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror -I. test/test_cvrider.cpp -o test_cvrider
           ./test_cvrider
+          g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror -I. test/test_phonemes.cpp -o test_phonemes
+          ./test_phonemes
 
   web:
     name: AudioWorklet offline-render tests

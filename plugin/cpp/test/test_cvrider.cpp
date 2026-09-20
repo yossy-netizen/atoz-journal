@@ -1,87 +1,9 @@
 // Standalone behavioural tests for the CVRider DSP core (no framework needed).
 //   g++ -std=c++17 -O2 -I.. test_cvrider.cpp -o test_cvrider && ./test_cvrider
-#include "../CVRider.h"
+#include "test_util.h"
 
-#include <cstdio>
-#include <cstdlib>
-#include <random>
-#include <string>
-#include <vector>
-
-namespace {
-
-constexpr double kPi = 3.14159265358979323846;
-constexpr int    kBlock = 64;
-double kFs = 48000.0;   // set per sample-rate pass in main()
-
-int g_failures = 0;
-
-void check(bool ok, const std::string& what) {
-    std::printf("%s  %s\n", ok ? "[ OK ]" : "[FAIL]", what.c_str());
-    if (!ok) ++g_failures;
-}
-
-// A segment of the synthetic "vocal": kind = 0 silence, 1 vowel (harmonic tone), 2 consonant (white noise)
-struct Segment { int kind; double seconds; float rmsDb; };
-
-// Builds a mono test signal and records where each segment starts/ends (in samples).
-std::vector<float> makeSignal(const std::vector<Segment>& segs, std::vector<std::pair<int,int>>& bounds) {
-    std::vector<float> out;
-    std::mt19937 rng(1234);
-    std::normal_distribution<float> gauss(0.0f, 1.0f);
-    double phase = 0.0;
-    for (const auto& s : segs) {
-        const int n = static_cast<int>(s.seconds * kFs);
-        const int start = static_cast<int>(out.size());
-        const float amp = std::pow(10.0f, s.rmsDb / 20.0f);
-        for (int i = 0; i < n; ++i) {
-            float v = 0.0f;
-            if (s.kind == 1) {
-                // 8 harmonics of 150 Hz, 1/k amplitude — vowel-like, energy well below 4 kHz
-                double sum = 0.0, norm = 0.0;
-                for (int k = 1; k <= 8; ++k) { sum += std::sin(k * phase) / k; norm += 1.0 / (2.0 * k * k); }
-                v = static_cast<float>(sum / std::sqrt(norm)) * amp;     // unit-RMS tone × amp
-                phase += 2.0 * kPi * 150.0 / kFs;
-            } else if (s.kind == 2) {
-                v = gauss(rng) * amp;                                     // unit-RMS noise × amp
-            } else {
-                v = gauss(rng) * 1.0e-4f;                                 // -80 dB floor
-            }
-            out.push_back(v);
-        }
-        bounds.emplace_back(start, start + n);
-    }
-    return out;
-}
-
-float rmsDb(const std::vector<float>& x, int from, int to) {
-    double acc = 0.0;
-    for (int i = from; i < to; ++i) acc += double(x[i]) * x[i];
-    return static_cast<float>(10.0 * std::log10(acc / std::max(1, to - from) + 1e-20));
-}
-
-// Runs the rider block by block; returns output and a per-block trace of the meters.
-std::vector<float> run(const std::vector<float>& in, const cvrider::Params& p, std::vector<cvrider::Meters>* trace = nullptr) {
-    cvrider::CVRider r;
-    r.prepare(kFs, 1, kBlock);
-    r.setParams(p);
-    std::vector<float> out = in;
-    for (int pos = 0; pos < static_cast<int>(out.size()); pos += kBlock) {
-        const int n = std::min(kBlock, static_cast<int>(out.size()) - pos);
-        float* chans[1] = { out.data() + pos };
-        r.process(chans, 1, n);
-        if (trace) trace->push_back(r.getMeters());
-    }
-    return out;
-}
-
-float meanProb(const std::vector<cvrider::Meters>& trace, int from, int to) {
-    double acc = 0.0; int cnt = 0;
-    for (int i = from / kBlock; i < to / kBlock; ++i) { acc += trace[i].consonantProb; ++cnt; }
-    return cnt ? static_cast<float>(acc / cnt) : 0.0f;
-}
-
-} // namespace
+using namespace testutil;
+#define kFs g_fs
 
 void runSuite();
 

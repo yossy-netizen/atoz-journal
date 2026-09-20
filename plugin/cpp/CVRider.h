@@ -153,6 +153,7 @@ public:
         hp.reset();
         hfEnv = totEnv = hfFast = hfSlow = 0.0f;
         lvEnv = lcEnv = 0.0f;
+        lvDbPrev = -120.0f;
         cSmooth.y = 0.0f;
         gvSmooth.y = gcSmooth.y = 0.0f;
         snapPending = true;   // smoothers jump to the current parameters on the next processed sample
@@ -240,14 +241,21 @@ public:
                                 * smoothstep(thr - 12.0f, thr - 4.0f, ratioDb);
 
             // ---- level detectors ----
-            lvEnv = x2 + kLv * (lvEnv - x2);
             lcEnv = x2 + kLc * (lcEnv - x2);
-            const float lvDb = powToDb(lvEnv);
             const float lcDb = powToDb(lcEnv);
-            const bool  idle = lcDb < params.idleThresholdDb && lvDb < params.idleThresholdDb;
+            const bool  idle = lcDb < params.idleThresholdDb && lvDbPrev < params.idleThresholdDb;
 
             // below the idle threshold the (broadband) noise floor must not count as a consonant
             const float c = cSmooth.process(idle ? 0.0f : std::max(sib, trans));
+
+            // the vowel level detector is frozen while a consonant is present, so a loud "s" does not
+            // inflate the vowel level for the next ~150 ms (it would otherwise under-boost the vowel)
+            {
+                const float rate = idle ? 1.0f : 1.0f - c;
+                lvEnv += rate * (1.0f - kLv) * (x2 - lvEnv);
+            }
+            const float lvDb = powToDb(lvEnv);
+            lvDbPrev = lvDb;
 
             // ---- riders ----
             float gvTarget = 0.0f, gcTarget = 0.0f;
@@ -299,7 +307,7 @@ private:
     detail::DcBlocker dc;
     detail::BiquadHP hp;
     float kEnergy = 0, kHfFastRise = 0, kHfFastFall = 0, kHfSlow = 0, kLv = 0, kLc = 0, kOffset = 0;
-    float hfEnv = 0, totEnv = 0, hfFast = 0, hfSlow = 0, lvEnv = 0, lcEnv = 0;
+    float hfEnv = 0, totEnv = 0, hfFast = 0, hfSlow = 0, lvEnv = 0, lcEnv = 0, lvDbPrev = -120.0f;
     float ratioThresholdDb = -9.0f;
     float kGain = 0;
     float vowelTrimSm = 0, consTrimSm = 0, outputSm = 0, gainSm = 1.0f;

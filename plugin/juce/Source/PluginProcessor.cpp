@@ -83,6 +83,43 @@ cvrider::Params CVRiderAudioProcessor::readParams() const {
     return p;
 }
 
+const juce::String CVRiderAudioProcessor::getProgramName(int index) {
+    const auto& list = cvrider::presets();
+    return juce::isPositiveAndBelow(index, static_cast<int>(list.size())) ? juce::String(list[static_cast<size_t>(index)].name) : juce::String();
+}
+
+// Applies a factory preset by writing every parameter through the host-notifying path.
+void CVRiderAudioProcessor::setCurrentProgram(int index) {
+    const auto& list = cvrider::presets();
+    if (!juce::isPositiveAndBelow(index, static_cast<int>(list.size()))) return;
+    currentProgram.store(index);
+    const cvrider::Params& p = list[static_cast<size_t>(index)].params;
+    auto set = [this](const char* id, float value) {
+        if (auto* param = apvts.getParameter(id)) {
+            param->beginChangeGesture();
+            param->setValueNotifyingHost(param->convertTo0to1(value));
+            param->endChangeGesture();
+        }
+    };
+    set(ParamID::vowelTarget,   p.vowelTargetDb);
+    set(ParamID::vowelRange,    p.vowelRangeDb);
+    set(ParamID::vowelAttack,   p.vowelAttackMs);
+    set(ParamID::vowelRelease,  p.vowelReleaseMs);
+    set(ParamID::vowelTrim,     p.vowelTrimDb);
+    set(ParamID::consTarget,    p.consTargetDb);
+    set(ParamID::consRange,     p.consRangeDb);
+    set(ParamID::consAttack,    p.consAttackMs);
+    set(ParamID::consRelease,   p.consReleaseMs);
+    set(ParamID::consTrim,      p.consTrimDb);
+    set(ParamID::sensitivity,   p.sensitivityDb);
+    set(ParamID::splitFreq,     p.splitHz);
+    set(ParamID::idleThreshold, p.idleThresholdDb);
+    set(ParamID::lookahead,     p.lookaheadMs);
+    set(ParamID::output,        p.outputDb);
+    set(ParamID::monitor,       static_cast<float>(p.monitor));
+    set(ParamID::bypass,        p.bypass ? 1.0f : 0.0f);
+}
+
 void CVRiderAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     rider.prepare(sampleRate, getTotalNumOutputChannels(), samplesPerBlock);
     rider.setParams(readParams());
@@ -130,12 +167,18 @@ void CVRiderAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 juce::AudioProcessorEditor* CVRiderAudioProcessor::createEditor() { return new CVRiderAudioProcessorEditor(*this); }
 
 void CVRiderAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
-    if (auto xml = apvts.copyState().createXml()) copyXmlToBinary(*xml, destData);
+    if (auto xml = apvts.copyState().createXml()) {
+        xml->setAttribute("program", currentProgram.load());
+        copyXmlToBinary(*xml, destData);
+    }
 }
 
 void CVRiderAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
     if (auto xml = getXmlFromBinary(data, sizeInBytes))
-        if (xml->hasTagName(apvts.state.getType())) apvts.replaceState(juce::ValueTree::fromXml(*xml));
+        if (xml->hasTagName(apvts.state.getType())) {
+            currentProgram.store(xml->getIntAttribute("program", 0));
+            apvts.replaceState(juce::ValueTree::fromXml(*xml));
+        }
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new CVRiderAudioProcessor(); }
