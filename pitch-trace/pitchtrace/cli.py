@@ -23,6 +23,7 @@ import numpy as np
 
 from .analyze import analyze_audio, build_profile
 from .generate import generate_contour
+from .key import key_name, parse_key
 from .notes import Note, TempoMap, describe_midi, load_midi_notes, make_monophonic
 from .profile import list_builtin_profiles, load_profile
 from .render_midi import render_midi
@@ -39,6 +40,8 @@ def _add_render_opts(ap: argparse.ArgumentParser) -> None:
     ap.add_argument("--no-lookahead", action="store_true", help="次の音を見ない（リアルタイム動作の模擬）")
     ap.add_argument("--max-events-per-s", type=float, default=None, help="ベンド/CC の最大密度")
     ap.add_argument("--vibrato-lane", choices=["bend", "cc"], default=None, help="ビブラートの出力先を上書き")
+    ap.add_argument("--key", default=None, help="調を指定（例 C, F#, Bb, Am）。省略時は render では自動判定、live では度数バイアスなし")
+    ap.add_argument("--no-key-bias", action="store_true", help="調に対する度数バイアスを付けない")
     ap.add_argument("--no-dynamics", action="store_true", help="ダイナミクス CC を出さない")
     ap.add_argument("--no-timing", action="store_true", help="マイクロタイミングを適用しない")
     ap.add_argument("--dyn-cc", type=int, default=None, help="ダイナミクスの CC 番号を上書き（既定 11）")
@@ -54,6 +57,14 @@ def _tempo_map(args, mf: mido.MidiFile | None) -> TempoMap:
     return TempoMap.constant(960, 120.0)
 
 
+def _key_arg(args, default="auto"):
+    if args.no_key_bias:
+        return None
+    if args.key:
+        return parse_key(args.key)
+    return default
+
+
 def _prepare(args, notes: list[Note]):
     profile = load_profile(args.profile)
     if args.vibrato_lane:
@@ -62,7 +73,8 @@ def _prepare(args, notes: list[Note]):
         profile.dynamics.cc_number = args.dyn_cc
     if args.mode == "single":
         notes = make_monophonic(notes, overlap_s=args.legato_overlap_ms / 1000.0)
-    contour = generate_contour(notes, profile, seed=args.seed, amount=args.amount, lookahead=not args.no_lookahead)
+    contour = generate_contour(notes, profile, seed=args.seed, amount=args.amount, lookahead=not args.no_lookahead,
+                               key=_key_arg(args))
     return profile, contour
 
 
@@ -87,7 +99,8 @@ def cmd_render(args) -> int:
     n_vib = sum(1 for nc in contour.notes if "vibrato_rate_hz" in nc.params)
     n_port = sum(1 for nc in contour.notes if nc.params.get("portamento"))
     dyn = "off" if args.no_dynamics or not profile.dynamics.enabled else f"CC{profile.dynamics.cc_number}"
-    print(f"{len(notes)} 音符 → {args.output}  (profile={profile.name}, mode={args.mode}, vibrato {n_vib}, portamento {n_port}, dynamics {dyn})")
+    key = key_name(*contour.key) if contour.key else "-"
+    print(f"{len(notes)} 音符 → {args.output}  (profile={profile.name}, mode={args.mode}, key {key}, vibrato {n_vib}, portamento {n_port}, dynamics {dyn})")
     return 0
 
 
@@ -209,7 +222,7 @@ def cmd_live(args) -> int:
         return RealtimeTracer(profile=profile, send=send, mode=args.mode, bend_range=args.bend_range,
                               channel=args.out_channel, seed=args.seed, amount=args.amount,
                               legato_overlap_s=args.legato_overlap_ms / 1000.0, passthrough=not args.no_passthrough,
-                              dynamics=not args.no_dynamics)
+                              dynamics=not args.no_dynamics, key=_key_arg(args, default=None))
 
     run_live(factory, args.inport, args.outport, in_channel=args.in_channel, verbose=args.verbose)
     return 0

@@ -50,6 +50,7 @@ class RealtimeTracer:
     legato_overlap_s: float = 0.0   # single モードで前の音を残す時間
     passthrough: bool = True        # ノート以外のメッセージをそのまま通す
     dynamics: bool = True           # ダイナミクス CC を出す
+    key: tuple[int, str] | None = None  # 調（度数バイアス用）。リアルタイムでは自動判定しない
 
     rng: np.random.Generator = field(init=False)
     active: dict[int, _Active] = field(init=False, default_factory=dict)  # pitch → 状態
@@ -130,7 +131,8 @@ class RealtimeTracer:
             ctx = self._context_from(newest, now, gap)
         else:
             ctx = NoteContext(prev_pitch=self._prev.prev_pitch, gap_s=gap, prev_end_cents=self._prev.prev_end_cents,
-                              prev_intonation=self._prev.prev_intonation, next_legato=None, phrase_end=None, is_climax=False)
+                              prev_intonation=self._prev.prev_intonation, next_legato=None, phrase_end=None, is_climax=False,
+                              key=self.key)
         note = Note(pitch=pitch, onset=now, duration=self.max_note_s, velocity=velocity)
         contour = generate_note(note, ctx, self.profile, self.rng, amount=self.amount, duration_s=self.max_note_s)
         ch = self._alloc_channel(now)
@@ -148,8 +150,8 @@ class RealtimeTracer:
         """鳴っている（または今切った）音 a の now 時点の状態から、次の音の NoteContext を作る。"""
         k = int((now - a.onset) / self.hop_s)
         return NoteContext(prev_pitch=a.pitch, gap_s=gap, prev_end_cents=a.contour.end_cents_at(k),
-                           prev_intonation=a.contour.params["intonation_cents"],
-                           next_legato=None, phrase_end=None, is_climax=False)
+                           prev_intonation=a.contour.params["intonation_random"],
+                           next_legato=None, phrase_end=None, is_climax=False, key=self.key)
 
     def _remember_prev(self, a: _Active, now: float) -> None:
         self._prev = self._context_from(a, now)

@@ -113,3 +113,23 @@ def test_dynamics_estimation_from_audio():
     prof = build_profile(an, base=p, name="t")
     assert prof.dynamics.attack_ms.mean > 0
     assert -0.6 <= prof.dynamics.sustain_slope.mean <= 0.6
+
+
+def test_analyze_recovers_degree_bias():
+    """度数バイアスを付けて合成した音から、解析が同じ向きのバイアス表を得ること。"""
+    p = load_profile("violin_classical")
+    p.intonation.cents.std = 1.0
+    p.vibrato.prob = 0.0
+    p.attack.prob = 0.0
+    p.transition.prob = 0.0
+    p.drift.cents.mean = p.drift.cents.std = 0.0
+    p.release.prob = 0.0
+    pitches = [60, 62, 64, 65, 67, 69, 71, 72] * 4
+    notes = [Note(pch, i * 0.5, 0.4) for i, pch in enumerate(pitches)]
+    c = generate_contour(notes, p, seed=1, key=(0, "major"))
+    an, tr = analyze_audio(synthesize(c), SR)
+    prof = build_profile(an, base=p, name="t")
+    assert prof.stats["key"] == "0:major"
+    tbl = prof.intonation.major_bias_cents
+    assert tbl[11] > tbl[0] + 4      # 導音は主音より明確に高い
+    assert abs(tbl[11] - p.intonation.major_bias_cents[11]) < 5

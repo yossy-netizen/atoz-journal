@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from .f0 import F0Track, yin_f0
+from .key import detect_key
+from .notes import Note
 from .generate import _moving_average
 from .profile import Dist, Profile
 
@@ -362,7 +364,27 @@ def build_profile(notes: list[AnalyzedNote], base: Profile | None = None, name: 
     P.hop_ms = hop_s * 1000.0
     ps = [n.params for n in notes]
 
-    P.intonation.cents = _dist([p.get("intonation_cents") for p in ps], P.intonation.cents)
+    # 調を判定し、度数ごとの中央値をバイアス表に、残りをランダム成分の分布にする
+    key = detect_key([Note(n.pitch, n.onset, n.duration) for n in notes]) if notes else (0, "major", 0.0)
+    tonic, mode = key[0], key[1]
+    intos = np.array([p.get("intonation_cents", 0.0) for p in ps], dtype=float)
+    degs = np.array([(n.pitch - tonic) % 12 for n in notes])
+    table = list(P.intonation.major_bias_cents if mode == "major" else P.intonation.minor_bias_cents)
+    if len(table) != 12:
+        table = [0.0] * 12
+    global_med = float(np.median(intos)) if len(intos) else 0.0
+    filled = 0
+    for d in range(12):
+        sel = intos[degs == d]
+        if len(sel) >= 3:
+            table[d] = float(np.median(sel) - global_med)
+            filled += 1
+    if mode == "major":
+        P.intonation.major_bias_cents = table
+    else:
+        P.intonation.minor_bias_cents = table
+    resid = intos - np.array([table[d] for d in degs]) if len(intos) else intos
+    P.intonation.cents = _dist(resid, P.intonation.cents)
     if len(ps) > 2:
         ints = np.array([p.get("intonation_cents", 0.0) for p in ps])
         # どちらかの側が定数だと相関が NaN になる（生成側に NaN が伝播する）ので両側を確認する
@@ -430,6 +452,8 @@ def build_profile(notes: list[AnalyzedNote], base: Profile | None = None, name: 
             P.dynamics.release_to = _dist(rel_to, P.dynamics.release_to, 0.02, 1.0)
 
     P.stats = {
+        "key": f"{tonic}:{mode}",
+        "key_degrees_filled": filled,
         "n_notes": len(notes),
         "n_legato": len(leg),
         "n_portamento": len(port),

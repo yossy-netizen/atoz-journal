@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from .key import degree_bias, detect_key
 from .notes import Note, split_phrases
 from .profile import Profile
 
@@ -32,6 +33,7 @@ class NoteContext:
     phrase_first: bool = False
     is_climax: bool = False
     arc_pos: float | None = None        # フレーズ内の位置: 0 = 始まり/終わり, 1 = 山（クライマックス）。None = 不明
+    key: tuple[int, str] | None = None  # (tonic_pc, 'major'|'minor')。None = 調不明（度数バイアスなし）
 
 
 @dataclass
@@ -61,6 +63,7 @@ class NoteContour:
 class Contour:
     notes: list[NoteContour]
     hop_s: float
+    key: tuple[int, str] | None = None
 
     def to_rows(self):
         """(絶対秒, ノート番号, セント) の列を返す。CSV 出力用。"""
@@ -130,11 +133,19 @@ def generate_note(
     params: dict = {}
 
     # --- イントネーション ------------------------------------------------
-    into = P.intonation.cents.sample(rng)
+    # ランダム成分（前の音との連続性あり）+ 調に対する度数バイアス（決定的）
+    rand = P.intonation.cents.sample(rng)
     if ctx.prev_pitch is not None:
-        into = P.intonation.continuity * ctx.prev_intonation + (1 - P.intonation.continuity) * into
+        rand = P.intonation.continuity * ctx.prev_intonation + (1 - P.intonation.continuity) * rand
+    bias = 0.0
+    if ctx.key is not None and P.intonation.key_bias_amount != 0.0:
+        bias = P.intonation.key_bias_amount * degree_bias(n.pitch, ctx.key[0], ctx.key[1],
+                                                          P.intonation.major_bias_cents, P.intonation.minor_bias_cents)
+    into = rand + bias
     parts["intonation"] = np.full(n_samples, into)
     params["intonation_cents"] = into
+    params["intonation_random"] = rand
+    params["intonation_key_bias"] = bias
 
     # --- 遷移（ポルタメント） / アタック ----------------------------------
     trans = np.zeros(n_samples)
@@ -280,17 +291,21 @@ def generate_contour(
     amount: float = 1.0,
     phrase_gap_s: float = 0.3,
     lookahead: bool = True,
+    key: tuple[int, str] | None | str = "auto",
 ) -> Contour:
     """音符列からセント偏差カーブを生成する。
 
     amount: 全成分の量（0 = 静止ピッチ、1 = プロファイル通り）
     lookahead: False にすると「次の音」を使う判断（フレーズ末のリリース、クライマックス）を
                行わない。リアルタイム動作の挙動を模擬する。
+    key: "auto" で音符列から調を判定、(tonic_pc, mode) で指定、None で度数バイアスなし
     """
     rng = np.random.default_rng(seed)
     hop_s = profile.hop_ms / 1000.0
     split_phrases(notes, gap_s=phrase_gap_s)
     max_gap = profile.transition.max_gap_ms / 1000.0
+    if key == "auto":
+        key = detect_key(notes)[:2] if notes else None
 
     # フレーズ内の位置（山までの進み具合）
     arc: dict[int, float] = {}
@@ -319,14 +334,18 @@ def generate_contour(
             ctx.phrase_first = n.phrase_pos in ("first", "single")
             ctx.is_climax = n.is_climax
             ctx.arc_pos = arc.get(idx)
+            ctx.key = key
         else:
             ctx.next_legato = False  # 次の音は不明: リリースは「単独音」扱いで付ける
             ctx.phrase_end = False
             ctx.phrase_first = False
             ctx.is_climax = False
             ctx.arc_pos = None
+            ctx.key = key
         nc = generate_note(n, ctx, profile, rng, amount=amount)
         out.append(nc)
         ctx = NoteContext(prev_pitch=n.pitch, gap_s=(nxt.onset - n.offset) if nxt else 1e9,
-                          prev_end_cents=nc.end_cents, prev_intonation=nc.params["intonation_cents"])
-    return Contour(notes=out, hop_s=hop_s)
+                          prev_end_cents=nc.end_cents, prev_intonation=nc.params["intonation_random"])
+    c = Contour(notes=out, hop_s=hop_s)
+    c.key = key
+    return c

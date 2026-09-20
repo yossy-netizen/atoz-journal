@@ -63,6 +63,11 @@ class Intonation:
     cents: Dist = field(default_factory=lambda: Dist(0.0, 5.0, -25.0, 25.0))
     # 音符間の相関（0 = 毎回独立、1 = 前の音と同じ偏差を引き継ぐ）
     continuity: float = 0.5
+    # 調に対する度数バイアス（セント）。主音からの半音数 0..11 で引く。
+    # 旋律的なイントネーション（導音は高め、長 3 度もやや高め = ピタゴラス寄り）を既定とする
+    key_bias_amount: float = 1.0
+    major_bias_cents: list = field(default_factory=lambda: [0.0] * 12)
+    minor_bias_cents: list = field(default_factory=lambda: [0.0] * 12)
 
 
 @dataclass

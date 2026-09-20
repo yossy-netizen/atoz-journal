@@ -11,7 +11,36 @@
       "min": -25,
       "max": 20
     },
-    "continuity": 0.5
+    "continuity": 0.5,
+    "key_bias_amount": 0.5,
+    "major_bias_cents": [
+      0,
+      4,
+      3,
+      -3,
+      6,
+      -2,
+      7,
+      2,
+      -2,
+      4,
+      -3,
+      9
+    ],
+    "minor_bias_cents": [
+      0,
+      3,
+      3,
+      -5,
+      5,
+      -2,
+      6,
+      2,
+      -4,
+      4,
+      -3,
+      9
+    ]
   },
   "transition": {
     "prob": 0.4,
