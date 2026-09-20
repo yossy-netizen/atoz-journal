@@ -1,0 +1,73 @@
+#pragma once
+
+#include <juce_audio_processors/juce_audio_processors.h>
+#include "CVRider.h"
+
+namespace ParamID {
+    inline constexpr auto vowelTarget   = "vowelTarget";
+    inline constexpr auto vowelRange    = "vowelRange";
+    inline constexpr auto vowelAttack   = "vowelAttack";
+    inline constexpr auto vowelRelease  = "vowelRelease";
+    inline constexpr auto vowelTrim     = "vowelTrim";
+    inline constexpr auto consTarget    = "consTarget";
+    inline constexpr auto consRange     = "consRange";
+    inline constexpr auto consAttack    = "consAttack";
+    inline constexpr auto consRelease   = "consRelease";
+    inline constexpr auto consTrim      = "consTrim";
+    inline constexpr auto sensitivity   = "sensitivity";
+    inline constexpr auto splitFreq     = "splitFreq";
+    inline constexpr auto idleThreshold = "idleThreshold";
+    inline constexpr auto lookahead     = "lookahead";
+    inline constexpr auto output        = "output";
+    inline constexpr auto monitor       = "monitor";
+    inline constexpr auto bypass        = "bypass";
+}
+
+class CVRiderAudioProcessor final : public juce::AudioProcessor {
+public:
+    CVRiderAudioProcessor();
+    ~CVRiderAudioProcessor() override = default;
+
+    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
+    void releaseResources() override {}
+    bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
+    using juce::AudioProcessor::processBlock;
+    void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+
+    juce::AudioProcessorEditor* createEditor() override;
+    bool hasEditor() const override { return true; }
+
+    const juce::String getName() const override { return JucePlugin_Name; }
+    bool acceptsMidi() const override { return false; }
+    bool producesMidi() const override { return false; }
+    bool isMidiEffect() const override { return false; }
+    double getTailLengthSeconds() const override { return 0.0; }
+
+    int getNumPrograms() override { return 1; }
+    int getCurrentProgram() override { return 0; }
+    void setCurrentProgram(int) override {}
+    const juce::String getProgramName(int) override { return {}; }
+    void changeProgramName(int, const juce::String&) override {}
+
+    void getStateInformation(juce::MemoryBlock& destData) override;
+    void setStateInformation(const void* data, int sizeInBytes) override;
+
+    juce::AudioProcessorValueTreeState& getState() { return apvts; }
+    cvrider::Meters getMeters() const {
+        return { meterLevel.load(std::memory_order_relaxed), meterProb.load(std::memory_order_relaxed),
+                 meterGv.load(std::memory_order_relaxed), meterGc.load(std::memory_order_relaxed),
+                 meterGain.load(std::memory_order_relaxed) };
+    }
+
+private:
+    static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
+    cvrider::Params readParams() const;
+
+    juce::AudioProcessorValueTreeState apvts;
+    cvrider::CVRider rider;
+    // per-field atomics keep this lock-free (a 20-byte atomic struct would need libatomic)
+    std::atomic<float> meterLevel { -120.0f }, meterProb { 0.0f }, meterGv { 0.0f }, meterGc { 0.0f }, meterGain { 0.0f };
+    int reportedLatency = -1;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CVRiderAudioProcessor)
+};
