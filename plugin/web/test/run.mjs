@@ -1,31 +1,13 @@
 // Renders the AudioWorklet through an OfflineAudioContext in headless Chromium and checks
 // the same behaviours as plugin/cpp/test/test_cvrider.cpp.
 //   node plugin/web/test/run.mjs
-import http from 'node:http';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
+import { serve, launch, makeChecker } from './harness.mjs';
 
-const require = createRequire(import.meta.url);
-let chromium;
-try { ({ chromium } = require('playwright')); }
-catch { ({ chromium } = require('/opt/node22/lib/node_modules/playwright')); }
-
-const webDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const server = http.createServer((req, res) => {
-  const file = path.join(webDir, req.url === '/' ? 'index.html' : req.url.split('?')[0]);
-  if (!file.startsWith(webDir) || !fs.existsSync(file)) { res.writeHead(404); res.end(); return; }
-  res.writeHead(200, { 'content-type': file.endsWith('.js') ? 'text/javascript' : 'text/html' });
-  fs.createReadStream(file).pipe(res);
-});
-await new Promise((r) => server.listen(0, '127.0.0.1', r));
-const origin = `http://127.0.0.1:${server.address().port}`;
-
-const browser = await chromium.launch({ executablePath: process.env.CVRIDER_CHROMIUM || undefined });
+const server = await serve();
+const browser = await launch();
 const page = await browser.newPage();
 page.on('pageerror', (e) => console.error('page error:', e));
-await page.goto(origin + '/');
+await page.goto(server.origin + '/');
 
 const results = await page.evaluate(async () => {
   const fs = 48000;
@@ -75,6 +57,12 @@ const results = await page.evaluate(async () => {
   r.soloConsKeepsCons = rmsDb(solo, mid(4, .3, 1)) - rmsDb(input, mid(4, .3, 1));
   r.soloConsRemovesVowel = rmsDb(solo, mid(3, .3, 1));
 
+  // a fresh node must apply the configured Output from the very first sample (no ramp-in);
+  // the signal starts with a noise floor below the idle threshold, so only Output acts there
+  const head = await render({ vowelRange: 0, consRange: 0, lookahead: 0, output: 12 });
+  const first20ms = [0, Math.round(0.02 * fs)];
+  r.headGainDb = rmsDb(head, first20ms) - rmsDb(input, first20ms);
+
   const bypass = await render({ bypass: 1, lookahead: 5 });
   let maxDiff = 0; const la = Math.round(0.005 * fs);
   for (let i = la; i < total; i++) maxDiff = Math.max(maxDiff, Math.abs(bypass[i] - input[i - la]));
@@ -85,8 +73,7 @@ const results = await page.evaluate(async () => {
 await browser.close();
 server.close();
 
-let failures = 0;
-const check = (ok, what) => { console.log(`${ok ? '[ OK ]' : '[FAIL]'}  ${what}`); if (!ok) failures++; };
+const { check, finish } = makeChecker();
 check(Math.abs(results.quietVowel + 18) < 1.5, `quiet vowel ridden up to -18 dB (got ${results.quietVowel.toFixed(2)})`);
 check(Math.abs(results.loudVowel + 18) < 1.5, `loud vowel ridden down to -18 dB (got ${results.loudVowel.toFixed(2)})`);
 check(Math.abs(results.consDeltaUnderVowelRider) < 1, `consonant untouched by vowel rider (delta ${results.consDeltaUnderVowelRider.toFixed(2)} dB)`);
@@ -95,5 +82,5 @@ check(Math.abs(results.loudCons + 24) < 2, `loud consonant ridden to -24 dB (got
 check(Math.abs(results.vowelDeltaUnderConsRider) < 1, `vowel untouched by consonant rider (delta ${results.vowelDeltaUnderConsRider.toFixed(2)} dB)`);
 check(results.soloConsKeepsCons > -1 && results.soloConsRemovesVowel < -40, `monitor: consonants solo (cons ${results.soloConsKeepsCons.toFixed(2)} dB, vowel ${results.soloConsRemovesVowel.toFixed(1)} dBFS)`);
 check(results.bypassMaxDiff < 1e-6, `bypass passes the input delayed by the lookahead (max diff ${results.bypassMaxDiff})`);
-console.log(failures ? `\nFAILED (${failures})` : '\nALL PASSED');
-process.exit(failures ? 1 : 0);
+check(Math.abs(results.headGainDb - 12) < 0.1, `fresh node applies Output from the first sample (first 20 ms: ${results.headGainDb.toFixed(2)} dB)`);
+process.exit(finish());

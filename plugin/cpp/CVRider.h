@@ -62,8 +62,11 @@ struct Meters {
 
 namespace detail {
 
-constexpr float kMaxLookaheadMs = 10.0f;
-constexpr float kEps            = 1.0e-12f;
+constexpr float  kMaxLookaheadMs = 10.0f;
+constexpr float  kEps            = 1.0e-12f;   // floor inside log10
+constexpr float  kAntiDenormal   = 1.0e-20f;   // keeps decaying energy envelopes out of the denormal range
+constexpr float  kAntiDenormalIn = 1.0e-18f;   // alternating-sign offset at the detector input (filter states)
+constexpr double kPi             = 3.14159265358979323846;
 
 inline float dbToLin(float db) { return std::pow(10.0f, db * 0.05f); }
 inline float powToDb(float p)  { return 10.0f * std::log10(p + kEps); }
@@ -84,7 +87,7 @@ class BiquadHP {
 public:
     void set(double fs, double fc, double q = 0.70710678) {
         fc = std::clamp(fc, 20.0, fs * 0.45);
-        const double w0 = 2.0 * M_PI * fc / fs;
+        const double w0 = 2.0 * kPi * fc / fs;
         const double c  = std::cos(w0);
         const double a  = std::sin(w0) / (2.0 * q);
         const double a0 = 1.0 + a;
@@ -104,6 +107,15 @@ public:
 private:
     float b0 = 1, b1 = 0, b2 = 0, a1 = 0, a2 = 0;
     float z1 = 0, z2 = 0;
+};
+
+// first-order DC blocker (~20 Hz) for the detector path, so a DC offset does not
+// inflate the "total" energy and hide consonants
+struct DcBlocker {
+    float r = 0.999f, x1 = 0.0f, y1 = 0.0f;
+    void set(double fs) { r = static_cast<float>(1.0 - 2.0 * kPi * 20.0 / fs); }
+    void reset() { x1 = y1 = 0.0f; }
+    inline float process(float x) { const float y = x - x1 + r * y1; x1 = x; y1 = y; return y; }
 };
 
 // one-pole smoother with separate rise / fall coefficients
@@ -137,11 +149,13 @@ public:
     }
 
     void reset() {
+        dc.reset();
         hp.reset();
         hfEnv = totEnv = hfFast = hfSlow = 0.0f;
         lvEnv = lcEnv = 0.0f;
         cSmooth.y = 0.0f;
         gvSmooth.y = gcSmooth.y = 0.0f;
+        snapPending = true;   // smoothers jump to the current parameters on the next processed sample
         for (auto& d : delay) std::fill(d.begin(), d.end(), 0.0f);
         writePos = 0;
         meters = Meters{};
@@ -151,7 +165,12 @@ public:
         params = p;
         if (fs <= 0.0) return;
         using namespace detail;
+        dc.set(fs);
         hp.set(fs, p.splitHz);
+        // static offsets (trims / output) are smoothed over ~10 ms so automation does not click;
+        // the final linear gain gets a short ~1 ms smoother that also de-clicks bypass / monitor / range steps
+        kOffset = tauCoef(10.0, fs);
+        kGain   = tauCoef(1.0, fs);
         // energy envelopes for the band ratio (~6 ms) — short enough for a "t",
         // long enough not to ripple within a pitch period.
         kEnergy = tauCoef(6.0, fs);
@@ -172,7 +191,6 @@ public:
         // band-ratio threshold. Vowels sit around −20…−30 dB, sibilants around 0 dB.
         ratioThresholdDb = -9.0f - p.sensitivityDb;
         lookaheadSamples = std::clamp(static_cast<int>(std::lround(p.lookaheadMs * 0.001 * fs)), 0, maxDelay - 1);
-        outputLin = dbToLin(p.outputDb);
     }
 
     const Params& getParams() const { return params; }
@@ -188,16 +206,27 @@ public:
         const float invCh = 1.0f / static_cast<float>(numChannels);
         const float thr = ratioThresholdDb;
 
+        if (snapPending) {
+            // first sample after prepare()/reset(): start from the current parameters, not from a ramp
+            vowelTrimSm = params.vowelTrimDb;
+            consTrimSm  = params.consTrimDb;
+            outputSm    = params.outputDb;
+            gainSm      = params.bypass ? 1.0f : (params.monitor != 0 ? 0.0f : dbToLin(vowelTrimSm + outputSm));
+            snapPending = false;
+        }
+
         for (int i = 0; i < numSamples; ++i) {
             // ---- detector input: mono mix of the *undelayed* signal ----
             float x = 0.0f;
             for (int ch = 0; ch < numChannels; ++ch) x += buffers[ch][i];
-            x *= invCh;
+            // a tiny alternating offset keeps the recursive filter states out of the denormal range
+            ditherSign = -ditherSign;
+            x = dc.process(x * invCh + ditherSign * kAntiDenormalIn);
 
             // ---- consonant classification ----
             const float h  = hp.process(x);
-            const float h2 = h * h;
-            const float x2 = x * x;
+            const float h2 = h * h + kAntiDenormal;   // and the same for the energy envelopes
+            const float x2 = x * x + kAntiDenormal;
             hfEnv  = h2 + kEnergy * (hfEnv - h2);
             totEnv = x2 + kEnergy * (totEnv - x2);
             const float ratioDb = powToDb(hfEnv) - powToDb(totEnv);           // ≤ 0 dB
@@ -230,27 +259,33 @@ public:
             const float gv = gvSmooth.process(gvTarget, idle ? 1.0f : 1.0f - c);
             const float gc = gcSmooth.process(gcTarget);
 
-            const float gainDb = c * (gc + params.consTrimDb) + (1.0f - c) * (gv + params.vowelTrimDb);
-            float gain = dbToLin(gainDb) * outputLin;
-            if (params.monitor == 1)      gain = c;
-            else if (params.monitor == 2) gain = 1.0f - c;
+            // smoothed static offsets
+            vowelTrimSm = params.vowelTrimDb + kOffset * (vowelTrimSm - params.vowelTrimDb);
+            consTrimSm  = params.consTrimDb  + kOffset * (consTrimSm  - params.consTrimDb);
+            outputSm    = params.outputDb    + kOffset * (outputSm    - params.outputDb);
+
+            const float gainDb = c * (gc + consTrimSm) + (1.0f - c) * (gv + vowelTrimSm);
+            float gainTarget = dbToLin(gainDb + outputSm);
+            if (params.bypass)            gainTarget = 1.0f;
+            else if (params.monitor == 1) gainTarget = c;
+            else if (params.monitor == 2) gainTarget = 1.0f - c;
+            gainSm = gainTarget + kGain * (gainSm - gainTarget);
 
             // ---- audio path: lookahead delay, then gain ----
             const int readPos = writePos - lookaheadSamples + maxDelay;
             for (int ch = 0; ch < numChannels; ++ch) {
                 auto& d = delay[static_cast<size_t>(ch)];
                 d[static_cast<size_t>(writePos)] = buffers[ch][i];
-                const float delayed = d[static_cast<size_t>(readPos % maxDelay)];
-                buffers[ch][i] = params.bypass ? delayed : delayed * gain;
+                buffers[ch][i] = d[static_cast<size_t>(readPos % maxDelay)] * gainSm;
             }
             if (++writePos >= maxDelay) writePos = 0;
 
             if (i == numSamples - 1) {
                 meters.levelDb       = lcDb;
                 meters.consonantProb = c;
-                meters.vowelGainDb   = gv + params.vowelTrimDb;
-                meters.consGainDb    = gc + params.consTrimDb;
-                meters.gainDb        = params.bypass ? 0.0f : gainDb + params.outputDb;
+                meters.vowelGainDb   = gv + vowelTrimSm;
+                meters.consGainDb    = gc + consTrimSm;
+                meters.gainDb        = params.bypass ? 0.0f : gainDb + outputSm;
             }
         }
     }
@@ -261,11 +296,15 @@ private:
     double fs = 0.0;
     int channels = 1;
 
+    detail::DcBlocker dc;
     detail::BiquadHP hp;
-    float kEnergy = 0, kHfFastRise = 0, kHfFastFall = 0, kHfSlow = 0, kLv = 0, kLc = 0;
+    float kEnergy = 0, kHfFastRise = 0, kHfFastFall = 0, kHfSlow = 0, kLv = 0, kLc = 0, kOffset = 0;
     float hfEnv = 0, totEnv = 0, hfFast = 0, hfSlow = 0, lvEnv = 0, lcEnv = 0;
     float ratioThresholdDb = -9.0f;
-    float outputLin = 1.0f;
+    float kGain = 0;
+    float vowelTrimSm = 0, consTrimSm = 0, outputSm = 0, gainSm = 1.0f;
+    float ditherSign = 1.0f;
+    bool  snapPending = true;
     detail::AsymSmoother cSmooth, gvSmooth, gcSmooth;
 
     std::vector<std::vector<float>> delay;

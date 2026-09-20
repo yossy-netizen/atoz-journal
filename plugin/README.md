@@ -11,9 +11,11 @@ plugin/
 │   ├── CVRider.h
 │   └── test/test_cvrider.cpp
 ├── juce/           DAW 用プラグイン（VST3 / AU / Standalone、JUCE 8 + CMake）
-├── web/            ブラウザ版デモ（AudioWorklet 移植 + UI）と Playwright テスト
+├── web/            ブラウザ版デモ（AudioWorklet 移植 + UI + WAV 書き出し）と Playwright テスト
 └── README.md
 ```
+
+CI（`.github/workflows/plugin-tests.yml`）で C++ テスト、Web テスト、JUCE の Linux ビルドが `plugin/` 変更時に走ります。
 
 DSP コアは `cpp/CVRider.h` が正本で、JUCE 版は薄いラッパー、Web 版は同じ信号処理を JS に移植したものです。
 
@@ -42,6 +44,9 @@ gain(dB) = c·gc + (1 − c)·gv + Output
 - **Idle**: 入力が Idle Threshold を下回るとどちらのゲインも 0 dB に戻り、ノイズフロアを持ち上げません。
 - **ルックアヘッド**: 音声側だけを最大 10 ms 遅らせ、検出器は遅延前の信号を見るので、子音の頭が
   削れる前にゲインが動けます（その分のレイテンシをホストに報告します）。
+- **細部**: 検出器の入口に DC ブロッカー（約 20 Hz）を置き、DC オフセットで子音が埋もれないようにしています。
+  Trim / Output の変更は約 10 ms で滑らかに追従するのでオートメーションでクリックしません。
+  エンベロープにはデノーマル対策の微小値を足しています。
 
 ## パラメータ
 
@@ -80,7 +85,8 @@ g++ -std=c++17 -O2 -I. test/test_cvrider.cpp -o test_cvrider && ./test_cvrider
 ```
 
 合成信号（倍音トーン = 母音、白色雑音 = 子音）で、分類・各ライダーの到達レベル・トリム・Idle・
-ルックアヘッド遅延・モニターモードを検証します。
+ルックアヘッド遅延・モニターモード・ステレオ一致・DC オフセット耐性・パラメータ変更時のクリック有無を、
+44.1 / 48 / 96 kHz の各サンプルレートで検証します（26 項目 × 3）。
 
 ### DAW 用プラグイン（JUCE）
 
@@ -104,10 +110,15 @@ python3 -m http.server 8080     # AudioWorklet は file:// では動かないた
 ```
 
 ファイルを読み込む / マイク入力 / 内蔵テスト信号のいずれかで動作を確認できます。
-オフラインレンダリングによるテスト:
+「書き出し (WAV 24bit)」で、現在のパラメータで処理した結果をルックアヘッド分の遅れを補正した状態で
+ダウンロードできます（DAW に貼り戻して比較する用途）。WAV / AIFF はファイル自身のサンプルレートで
+デコード・書き出しされます（それ以外の形式はブラウザの再生レートになります）。
+
+テスト（Playwright + Chromium が必要）:
 
 ```bash
-node plugin/web/test/run.mjs    # Playwright + Chromium が必要
+node plugin/web/test/run.mjs    # OfflineAudioContext で DSP の挙動を検証
+node plugin/web/test/ui.mjs     # ページの再生・メーター・書き出しのスモークテスト
 ```
 
 ## 今後の拡張候補

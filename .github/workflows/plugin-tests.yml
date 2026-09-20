@@ -1,0 +1,57 @@
+name: plugin tests
+
+on:
+  push:
+    paths: ["plugin/**", ".github/workflows/plugin-tests.yml"]
+  pull_request:
+    paths: ["plugin/**", ".github/workflows/plugin-tests.yml"]
+
+jobs:
+  dsp-core:
+    name: C++ DSP core tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run behavioural tests
+        working-directory: plugin/cpp
+        run: |
+          g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror -I. test/test_cvrider.cpp -o test_cvrider
+          ./test_cvrider
+
+  web:
+    name: AudioWorklet offline-render tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright + Chromium
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run offline-render tests
+        run: node plugin/web/test/run.mjs
+      - name: Run browser UI smoke test
+        run: node plugin/web/test/ui.mjs
+
+  juce:
+    name: JUCE build (Linux VST3 + Standalone)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install JUCE Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libfreetype-dev libfontconfig-dev \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libcurl4-openssl-dev
+      - name: Configure (fetches JUCE 8.0.4)
+        working-directory: plugin/juce
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        working-directory: plugin/juce
+        run: cmake --build build --config Release -j"$(nproc)"
+      - name: Check artefacts exist
+        run: |
+          test -f "plugin/juce/build/CVRider_artefacts/Release/VST3/CV Rider.vst3/Contents/x86_64-linux/CV Rider.so"
+          test -f "plugin/juce/build/CVRider_artefacts/Release/Standalone/CV Rider"

@@ -10,8 +10,9 @@
 
 namespace {
 
-constexpr double kFs = 48000.0;
+constexpr double kPi = 3.14159265358979323846;
 constexpr int    kBlock = 64;
+double kFs = 48000.0;   // set per sample-rate pass in main()
 
 int g_failures = 0;
 
@@ -40,7 +41,7 @@ std::vector<float> makeSignal(const std::vector<Segment>& segs, std::vector<std:
                 double sum = 0.0, norm = 0.0;
                 for (int k = 1; k <= 8; ++k) { sum += std::sin(k * phase) / k; norm += 1.0 / (2.0 * k * k); }
                 v = static_cast<float>(sum / std::sqrt(norm)) * amp;     // unit-RMS tone × amp
-                phase += 2.0 * M_PI * 150.0 / kFs;
+                phase += 2.0 * kPi * 150.0 / kFs;
             } else if (s.kind == 2) {
                 v = gauss(rng) * amp;                                     // unit-RMS noise × amp
             } else {
@@ -82,7 +83,19 @@ float meanProb(const std::vector<cvrider::Meters>& trace, int from, int to) {
 
 } // namespace
 
+void runSuite();
+
 int main() {
+    for (double fs : {44100.0, 48000.0, 96000.0}) {
+        kFs = fs;
+        std::printf("--- %.0f Hz ---\n", fs);
+        runSuite();
+    }
+    std::printf("\n%s (%d failure%s)\n", g_failures ? "FAILED" : "ALL PASSED", g_failures, g_failures == 1 ? "" : "s");
+    return g_failures ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+
+void runSuite() {
     std::vector<std::pair<int,int>> b;
     const std::vector<Segment> segs = {
         {0, 0.30, -80.f},   // 0 silence
@@ -167,16 +180,110 @@ int main() {
         cvrider::Params p;
         p.lookaheadMs = 5.f; p.bypass = true;
         cvrider::CVRider r; r.prepare(kFs, 2, kBlock); r.setParams(p);
-        check(r.getLatencySamples() == 240, "5 ms lookahead reports 240 samples latency at 48 kHz");
-        std::vector<float> L(1000, 0.f), R(1000, 0.f); L[10] = 1.f; R[10] = -1.f;
+        const int la = static_cast<int>(std::lround(0.005 * kFs));
+        check(r.getLatencySamples() == la, "5 ms lookahead reports " + std::to_string(la) + " samples latency");
+        std::vector<float> L(2000, 0.f), R(2000, 0.f); L[10] = 1.f; R[10] = -1.f;
         float* ch[2] = { L.data(), R.data() };
-        r.process(ch, 2, 1000);
-        check(L[250] == 1.f && R[250] == -1.f && L[10] == 0.f, "bypass passes the signal through delayed by the lookahead");
+        r.process(ch, 2, 2000);
+        check(L[10 + la] == 1.f && R[10 + la] == -1.f && L[10] == 0.f, "bypass passes the signal through delayed by the lookahead");
         p.bypass = false; p.vowelRangeDb = 0.f; p.consRangeDb = 0.f; p.outputDb = -6.f;
         r.setParams(p); r.reset();
         std::fill(L.begin(), L.end(), 0.f); std::fill(R.begin(), R.end(), 0.f); L[10] = 1.f; R[10] = 0.5f;
-        r.process(ch, 2, 1000);
-        check(std::fabs(L[250] - 0.5012f) < 1e-3f && std::fabs(R[250] - 0.2506f) < 1e-3f, "output trim -6 dB applied equally to both channels");
+        r.process(ch, 2, 2000);
+        check(std::fabs(L[10 + la] - 0.5012f) < 1e-3f && std::fabs(R[10 + la] - 0.2506f) < 1e-3f, "output trim -6 dB applied equally to both channels");
+    }
+
+    // ---------------------------------------------------------------- stereo: same gain on both channels
+    {
+        cvrider::Params p;
+        cvrider::CVRider r; r.prepare(kFs, 2, kBlock); r.setParams(p);
+        std::vector<float> L = in, R = in;
+        for (auto& v : R) v *= 0.5f;   // right channel 6 dB lower, same content
+        for (int pos = 0; pos < static_cast<int>(L.size()); pos += kBlock) {
+            const int n = std::min(kBlock, static_cast<int>(L.size()) - pos);
+            float* ch[2] = { L.data() + pos, R.data() + pos };
+            r.process(ch, 2, n);
+        }
+        float maxDev = 0.f;
+        for (size_t i = 0; i < L.size(); ++i) maxDev = std::max(maxDev, std::fabs(L[i] * 0.5f - R[i]));
+        check(maxDev < 1e-5f, "stereo: identical gain applied to both channels (max deviation " + std::to_string(maxDev) + ")");
+    }
+
+    // ---------------------------------------------------------------- DC offset does not hide consonants
+    {
+        cvrider::Params p;
+        std::vector<float> dcIn = in;
+        for (auto& v : dcIn) v += 0.1f;   // -20 dBFS DC offset
+        std::vector<cvrider::Meters> tr;
+        run(dcIn, p, &tr);
+        auto [f, t] = mid(2, 0.2, 1.0); float c = meanProb(tr, f, t);
+        check(c > 0.85f, "consonant still detected with a DC offset present (c=" + std::to_string(c) + ")");
+        auto [f2, t2] = mid(1, 0.2, 1.0); float cv = meanProb(tr, f2, t2);
+        check(cv < 0.15f, "vowel still classified as vowel with a DC offset present (c=" + std::to_string(cv) + ")");
+    }
+
+    // ---------------------------------------------------------------- parameter steps do not click
+    {
+        // steady loud vowel; jump the output/trim by 12 dB mid-way and look for a sample-to-sample jump
+        std::vector<Segment> one = {{1, 0.6, -12.f}};
+        std::vector<std::pair<int,int>> bb;
+        const auto tone = makeSignal(one, bb);
+        cvrider::Params p; p.vowelRangeDb = 0.f; p.consRangeDb = 0.f;
+        p.lookaheadMs = 0.f;   // so out[i] / tone[i] is the applied gain
+        cvrider::CVRider r; r.prepare(kFs, 1, kBlock); r.setParams(p);
+        std::vector<float> out = tone;
+        int half = static_cast<int>(out.size() / 2);
+        half -= half % kBlock;   // align the step to a block boundary
+        for (int pos = 0; pos < static_cast<int>(out.size()); pos += kBlock) {
+            if (pos == half) { p.outputDb = 6.f; p.vowelTrimDb = -12.f; p.consTrimDb = 6.f; r.setParams(p); }   // net -6 dB on vowels
+            const int n = std::min(kBlock, static_cast<int>(out.size()) - pos);
+            float* ch[1] = { out.data() + pos };
+            r.process(ch, 1, n);
+        }
+        // ratio out/in must change smoothly: max step of the gain between neighbouring samples
+        float maxStep = 0.f;
+        for (int i = half - 200; i < half + 2000; ++i) {
+            if (std::fabs(tone[i]) < 0.05f || std::fabs(tone[i - 1]) < 0.05f) continue;
+            maxStep = std::max(maxStep, std::fabs(out[i] / tone[i] - out[i - 1] / tone[i - 1]));
+        }
+        check(maxStep > 0.f && maxStep < 0.02f, "trim/output steps are smoothed (max per-sample gain step " + std::to_string(maxStep) + ")");
+        const float endGain = rmsDb(out, static_cast<int>(out.size() * 0.8), static_cast<int>(out.size())) - rmsDb(tone, static_cast<int>(out.size() * 0.8), static_cast<int>(out.size()));
+        check(std::fabs(endGain + 6.f) < 0.2f, "trim/output steps settle at the new value (" + std::to_string(endGain) + " dB)");
+
+        // bypass toggle while +6 dB of static gain is applied: the gain must ramp, not jump
+        p = cvrider::Params{}; p.vowelRangeDb = 0.f; p.consRangeDb = 0.f; p.lookaheadMs = 0.f; p.outputDb = 6.f;
+        r.setParams(p); r.reset();
+        out = tone;
+        for (int pos = 0; pos < static_cast<int>(out.size()); pos += kBlock) {
+            if (pos == half) { p.bypass = true; r.setParams(p); }
+            const int n = std::min(kBlock, static_cast<int>(out.size()) - pos);
+            float* ch[1] = { out.data() + pos };
+            r.process(ch, 1, n);
+        }
+        maxStep = 0.f;
+        for (int i = half - 200; i < half + 2000; ++i) {
+            if (std::fabs(tone[i]) < 0.05f || std::fabs(tone[i - 1]) < 0.05f) continue;
+            maxStep = std::max(maxStep, std::fabs(out[i] / tone[i] - out[i - 1] / tone[i - 1]));
+        }
+        check(maxStep > 0.f && maxStep < 0.05f, "bypass toggle is de-clicked (max per-sample gain step " + std::to_string(maxStep) + ")");
+        check(std::fabs(out.back() - tone.back()) < 1e-5f, "bypass settles at unity");
+    }
+
+    // ---------------------------------------------------------------- no startup ramp after prepare() + setParams()
+    {
+        // host order: prepare() first, then setParams() with the saved state — the very first samples
+        // must already carry the saved Output, not ramp in from the default.
+        std::vector<Segment> one = {{1, 0.05, -12.f}};
+        std::vector<std::pair<int,int>> bb;
+        const auto tone = makeSignal(one, bb);
+        cvrider::Params p; p.vowelRangeDb = 0.f; p.consRangeDb = 0.f; p.lookaheadMs = 0.f; p.outputDb = -12.f;
+        cvrider::CVRider r; r.prepare(kFs, 1, kBlock); r.setParams(p);
+        std::vector<float> out = tone;
+        float* ch[1] = { out.data() };
+        r.process(ch, 1, kBlock);
+        float maxErr = 0.f;
+        for (int i = 0; i < kBlock; ++i) maxErr = std::max(maxErr, std::fabs(out[i] - tone[i] * 0.2512f));
+        check(maxErr < 1e-3f, "first block after prepare()+setParams() already has the saved output gain (err " + std::to_string(maxErr) + ")");
     }
 
     // ---------------------------------------------------------------- monitor modes
@@ -190,7 +297,4 @@ int main() {
         { auto [f, t] = mid(3, 0.3, 1.0);
             check(rmsDb(vows, f, t) - rmsDb(in, f, t) > -1.f && rmsDb(cons, f, t) < -40.f, "monitor: vowels solo keeps the vowel, consonants solo removes it"); }
     }
-
-    std::printf("\n%s (%d failure%s)\n", g_failures ? "FAILED" : "ALL PASSED", g_failures, g_failures == 1 ? "" : "s");
-    return g_failures ? EXIT_FAILURE : EXIT_SUCCESS;
 }
