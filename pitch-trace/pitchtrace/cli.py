@@ -5,6 +5,9 @@
   pitchtrace analyze in.wav -o prof.json    ソロ録音からプロファイルを作る
   pitchtrace demo    out_dir [opts]         静止ピッチ / トレース済みの A/B 用 WAV と MIDI を作る
   pitchtrace dump    in.mid out.csv [opts]  生成したカーブを CSV で書き出す（可視化用）
+  pitchtrace ports                          MIDI ポート一覧
+  pitchtrace live    [--in NAME] [--out NAME] [opts]
+                                            DAW からリアルタイムに受けてピッチベンド付きで返す
 """
 
 from __future__ import annotations
@@ -136,6 +139,41 @@ def cmd_demo(args) -> int:
     return 0
 
 
+def cmd_ports(args) -> int:
+    try:
+        from .realtime import list_ports
+        ins, outs = list_ports()
+    except Exception as e:  # rtmidi 未インストールなど
+        print(f"MIDI ポートを列挙できません: {e}\n  pip install python-rtmidi を実行してください", file=sys.stderr)
+        return 1
+    print("入力:")
+    for n in ins:
+        print("  ", n)
+    print("出力:")
+    for n in outs:
+        print("  ", n)
+    return 0
+
+
+def cmd_live(args) -> int:
+    try:
+        from .realtime import RealtimeTracer, run_live
+    except Exception as e:
+        print(f"リアルタイム機能を読み込めません: {e}", file=sys.stderr)
+        return 1
+    profile = load_profile(args.profile)
+    if args.vibrato_lane:
+        profile.output.vibrato_lane = args.vibrato_lane
+
+    def factory(send):
+        return RealtimeTracer(profile=profile, send=send, mode=args.mode, bend_range=args.bend_range,
+                              channel=args.out_channel, seed=args.seed, amount=args.amount,
+                              legato_overlap_s=args.legato_overlap_ms / 1000.0, passthrough=not args.no_passthrough)
+
+    run_live(factory, args.inport, args.outport, in_channel=args.in_channel, verbose=args.verbose)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="pitchtrace", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -161,6 +199,17 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("--fmin", type=float, default=80.0); a.add_argument("--fmax", type=float, default=1500.0)
     a.add_argument("--notes-json", default=None, help="音符ごとの推定値も JSON で書き出す")
     a.set_defaults(func=cmd_analyze)
+
+    sub.add_parser("ports", help="MIDI ポート一覧").set_defaults(func=cmd_ports)
+
+    lv = sub.add_parser("live", help="リアルタイム処理（仮想 MIDI ポート）")
+    lv.add_argument("--in", dest="inport", default="virtual", help="入力ポート名（部分一致）。'virtual' で 'PitchTrace In' を作る")
+    lv.add_argument("--out", dest="outport", default="virtual", help="出力ポート名（部分一致）。'virtual' で 'PitchTrace Out' を作る")
+    lv.add_argument("--in-channel", type=int, default=None, help="このチャンネルの入力だけを処理（0 始まり）")
+    lv.add_argument("--out-channel", type=int, default=0, help="single モードの出力チャンネル（0 始まり）")
+    lv.add_argument("--no-passthrough", action="store_true", help="ノート以外のメッセージを通さない")
+    lv.add_argument("--verbose", "-v", action="store_true")
+    _add_render_opts(lv); lv.set_defaults(func=cmd_live)
 
     m = sub.add_parser("demo", help="A/B 用の WAV と MIDI を作る")
     m.add_argument("out_dir"); m.add_argument("--input", default=None, help="MIDI（省略時は内蔵フレーズ）")

@@ -14,6 +14,8 @@
 | `pitchtrace analyze solo.wav -o my_violin.json --base violin_classical` | ソロ録音（無伴奏・単旋律）からプロファイルを推定。出力はそのまま `--profile` に渡せる |
 | `pitchtrace demo out_dir --profile alto_sax_jazz` | 静止ピッチ版とトレース版の WAV / MIDI を出力（A/B 試聴用） |
 | `pitchtrace dump in.mid out.csv` | 生成したカーブを成分ごとに CSV へ（可視化・検証用） |
+| `pitchtrace live --profile violin_classical` | 仮想 MIDI ポート `PitchTrace In/Out` を作り、DAW からリアルタイムに受けてピッチベンド付きで返す（要 `pip install python-rtmidi`） |
+| `pitchtrace ports` | MIDI ポート一覧 |
 | `pitchtrace profiles` | 組み込みプロファイル一覧 |
 
 組み込みプロファイル: `violin_classical` `cello_classical` `oboe_classical` `alto_sax_classical` `alto_sax_jazz`
@@ -23,10 +25,13 @@
 
 ```bash
 cd pitch-trace
-pip install -e ".[dev]"
+pip install -e ".[dev,live]"     # live はリアルタイム用（python-rtmidi）。不要なら ".[dev]"
 python -m pytest -q
 pitchtrace demo /tmp/pt_demo --profile violin_classical   # demo_static.wav と demo_violin_classical.wav を聴き比べ
 ```
+
+Mac（Apple Silicon）でのセットアップ、DAW とのルーティング、テスト運用のチェックリストは
+[`docs/MAC_SETUP.md`](docs/MAC_SETUP.md)。`bash scripts/setup_mac.sh --live` で venv 作成からデモ生成まで行う。
 
 依存は numpy と mido のみ。F0 抽出は YIN の自前実装（精度が要る段階で CREPE / PESTO に差し替える）。
 
@@ -51,6 +56,13 @@ c(t) = intonation + transition(t) + attack(t) + vibrato(t) + drift(t) + release(
 - ビブラート・レガートが録音に焼き込まれた音源では二重にかかる。物理モデル系（SWAM 等）や
   ビブラートを CC で制御できる音源（`--vibrato-lane cc`）が相性が良い
 - レガート検出に重なりが要る音源は `--legato-overlap-ms 20` などで重なりを残す
+
+## リアルタイム動作
+
+`realtime.py` の `RealtimeTracer` はノートオン時に前の音との関係（ピッチ・隙間・終端偏差）から
+その音のカーブを生成し、ベンドをノートオンより先に送ってから hop ごとに流す。
+次の音と音長が分からないため、フレーズ末のリリースとクライマックスの強調は付かない。
+ノートオン時の処理コストは 1 音あたり約 2 ms。
 
 ## 既知の制限（v0.1）
 
