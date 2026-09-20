@@ -1,4 +1,4 @@
-# PitchTrace（v0.2 プロトタイプ）
+# PitchTrace（v0.3 プロトタイプ）
 
 生楽器（バイオリン・チェロ・オーボエ・サックス等、単旋律）の**ピッチの揺らぎ・繋ぎ・外し方**を
 プロファイル化し、MIDI 打ち込みにピッチベンド / MPE / CC として付与するツール。
@@ -17,6 +17,7 @@
 | `pitchtrace analyze solo.wav --igf solo.igf.json` | 音符ごとのジェスチャー + 生カーブを IGF（中間表現）として保存。`--detector pyin`、`--tuning 442` |
 | `pitchtrace transfer cello_ref.wav melody.mid out.mid` | **参照演奏のジェスチャーを別の MIDI へ転写**。`--adapt param|raw`、`--mapping positional|context`、`--map 0,1,3,-`、`--wav` で試聴用 WAV |
 | `pitchtrace plot out.png --igf solo.igf.json --midi melody.mid --profile cello_classical` | 可視化（生 F0・正規化カーブ・信頼度・境界・生成カーブ・ダイナミクス）。要 matplotlib |
+| `pitchtrace eval --all` | 客観評価（生成 → 合成 → 解析の往復精度）。結果の推移は `docs/EVAL_LOG.md` |
 | `pitchtrace demo out_dir --profile cello_classical --blind` | 静止 / ランダム・ヒューマナイズ / ジェスチャーをシャッフルした X/Y/Z WAV（答えは別ファイル） |
 | `pitchtrace demo out_dir --profile alto_sax_jazz` | 静止ピッチ版とトレース版の WAV / MIDI を出力（A/B 試聴用） |
 | `pitchtrace dump in.mid out.csv` | 生成したカーブを成分ごとに CSV へ（可視化・検証用） |
@@ -36,8 +37,8 @@ python -m pytest -q
 pitchtrace demo /tmp/pt_demo --profile violin_classical   # demo_static.wav と demo_violin_classical.wav を聴き比べ
 ```
 
-Mac（Apple Silicon）でのセットアップ、DAW とのルーティング、テスト運用のチェックリストは
-[`docs/MAC_SETUP.md`](docs/MAC_SETUP.md)。`bash scripts/setup_mac.sh --live` で venv 作成からデモ生成まで行う。
+文書は [`docs/`](docs/README.md) にまとめてある: やさしい解説（`GUIDE_FOR_EVERYONE.md`）、
+周辺知識（`BACKGROUND.md`）、Mac セットアップ（`MAC_SETUP.md`）、詳細マニュアル（`MANUAL.md`）。`bash scripts/setup_mac.sh --live` で venv 作成からデモ生成まで行う。
 
 依存は numpy と mido のみ。F0 抽出は YIN の自前実装（精度が要る段階で CREPE / PESTO に差し替える）。
 
@@ -104,7 +105,7 @@ c(t) = intonation + transition(t) + attack(t) + vibrato(t) + drift(t) + release(
 
 ## 既知の制限（v0.1）
 
-- 対象は単旋律のみ。同音連打はピッチだけでは分割できない（オンセット検出は未実装）
+- 対象は単旋律のみ。同音連打は音量の落ち込みで分割する（落ち込みが浅い演奏では分かれないことがある）
 - 20 ms 未満のポルタメントは F0 抽出の時間分解能により「段差」と区別できない
 - ビブラートの立ち上がりが遅い奏法では、0.5 秒未満の音でビブラートを検出しにくい
 - 解析は「安定区間の中央値」を目標音とみなすため、ビブラートの中心ずれとイントネーションの

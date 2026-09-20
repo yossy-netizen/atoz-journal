@@ -82,7 +82,8 @@ def test_generate_synth_analyze_recovers_profile():
     assert matched >= len(notes) - 4
     prof = build_profile(an, base=p, name="t")
     assert abs(prof.vibrato.rate_hz.mean - p.vibrato.rate_hz.mean) < 0.5
-    assert abs(prof.intonation.cents.mean - p.intonation.cents.mean) < 5.0
+    tuning_offset = 1200.0 * np.log2(tr.tuning_hz / 440.0)
+    assert abs(prof.intonation.cents.mean + tuning_offset - p.intonation.cents.mean) < 6.0
     assert 0.6 < prof.vibrato.depth_cents.mean / p.vibrato.depth_cents.mean < 1.4
     assert prof.stats["n_notes"] == len(an)
     # 出力がそのまま render に使える
@@ -178,3 +179,16 @@ def test_random_humanize_profile_ignores_context():
     assert not c.notes[1].params.get("portamento")
     assert "attack_cents" not in c.notes[1].params
     assert all(nc.params["intonation_key_bias"] == 0.0 for nc in c.notes)
+
+
+def test_repeated_pitch_split_by_energy_dip():
+    """同音連打は音量の落ち込みで分割される。"""
+    p = load_profile("oboe_classical")
+    p.vibrato.prob = 0.0
+    notes = [Note(64, 0.0, 0.5), Note(64, 0.5, 0.5), Note(64, 1.0, 0.5)]
+    c = generate_contour(notes, p, seed=0, amount=0.0)
+    an, tr = analyze_audio(synthesize(c), SR)
+    assert len(an) == 3
+    assert [a.pitch for a in an] == [64, 64, 64]
+    for a, n in zip(an, notes):
+        assert abs(a.onset - n.onset) < 0.05

@@ -9,6 +9,8 @@
   pitchtrace transfer ref.(wav|igf.json) target.mid out.mid [opts]
                                             参照演奏のジェスチャーを別の MIDI へ転写（Reference Performance Transfer）
   pitchtrace plot    out.png [--igf X] [--midi Y --profile P]  可視化（要 matplotlib）
+  pitchtrace eval    [--profile P | --all] [--igf A --igf2 B]
+                                            客観評価（往復精度 / IGF 同士の分布比較）
   pitchtrace ports                          MIDI ポート一覧
   pitchtrace live    [--in NAME] [--out NAME] [opts]
                                             DAW からリアルタイムに受けてピッチベンド付きで返す
@@ -44,7 +46,7 @@ def _add_render_opts(ap: argparse.ArgumentParser) -> None:
     ap.add_argument("--no-lookahead", action="store_true", help="次の音を見ない（リアルタイム動作の模擬）")
     ap.add_argument("--max-events-per-s", type=float, default=None, help="ベンド/CC の最大密度")
     ap.add_argument("--vibrato-lane", choices=["bend", "cc"], default=None, help="ビブラートの出力先を上書き")
-    ap.add_argument("--key", default=None, help="調を指定（例 C, F#, Bb, Am）。省略時は render では自動判定、live では度数バイアスなし")
+    ap.add_argument("--key", default=None, help="調を指定（例 C, F#, Bb, Am）。render は省略時に自動判定。live は省略時バイアスなし、'auto' で直近の音符から推定")
     ap.add_argument("--no-key-bias", action="store_true", help="調に対する度数バイアスを付けない")
     for comp in COMPONENTS:
         ap.add_argument(f"--amount-{comp}", type=float, default=None, help=f"{comp} 成分の量（1.0 = プロファイル通り、>1 で誇張）")
@@ -238,6 +240,27 @@ def cmd_transfer(args) -> int:
     return 0
 
 
+def cmd_eval(args) -> int:
+    from .evaluate import compare_igf, format_roundtrip, roundtrip
+    results = []
+    if args.igf and args.igf2:
+        rep = compare_igf(load_igf(args.igf), load_igf(args.igf2))
+        print(json.dumps(rep, ensure_ascii=False, indent=1))
+        results.append(rep)
+    else:
+        names = list_builtin_profiles() if args.all else [args.profile or "cello_classical"]
+        names = [n for n in names if n != "random_humanize"]
+        for name in names:
+            for seed in range(args.seeds):
+                r = roundtrip(name, seed=seed, n_notes=args.notes)
+                print(format_roundtrip(r))
+                results.append(r)
+    if args.json:
+        Path(args.json).write_text(json.dumps(results, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"→ {args.json}")
+    return 0
+
+
 def cmd_plot(args) -> int:
     from .plot import save_plot
     igf = load_igf(args.igf) if args.igf else None
@@ -317,7 +340,9 @@ def cmd_live(args) -> int:
         return RealtimeTracer(profile=profile, send=send, mode=args.mode, bend_range=args.bend_range,
                               channel=args.out_channel, seed=args.seed, amount=args.amount,
                               legato_overlap_s=args.legato_overlap_ms / 1000.0, passthrough=not args.no_passthrough,
-                              dynamics=not args.no_dynamics, key=_key_arg(args, default=None))
+                              dynamics=not args.no_dynamics,
+                              key=None if (args.no_key_bias or args.key in (None, "auto")) else parse_key(args.key),
+                              key_auto=(args.key == "auto" and not args.no_key_bias))
 
     run_live(factory, args.inport, args.outport, in_channel=args.in_channel, verbose=args.verbose)
     return 0
@@ -354,7 +379,7 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("--base", default=None, help="推定できない項目の既定値に使う組み込みプロファイル")
     a.add_argument("--name", default=None); a.add_argument("--instrument", default=None); a.add_argument("--style", default=None)
     a.add_argument("--hop-ms", type=float, default=5.0)
-    a.add_argument("--fmin", type=float, default=80.0); a.add_argument("--fmax", type=float, default=1500.0)
+    a.add_argument("--fmin", type=float, default=55.0, help="F0 の下限 Hz（チェロの最低音 C2 = 65 Hz を含む既定 55）"); a.add_argument("--fmax", type=float, default=1500.0)
     a.add_argument("--notes-json", default=None, help="音符ごとの推定値も JSON で書き出す")
     a.set_defaults(func=cmd_analyze)
 
@@ -389,6 +414,14 @@ def build_parser() -> argparse.ArgumentParser:
     tf.add_argument("--save-igf", default=None, help="参照を解析した IGF を保存")
     tf.add_argument("--wav", default=None, help="試聴用 WAV も書く（簡易シンセ）")
     _add_render_opts(tf); tf.set_defaults(func=cmd_transfer, profile=None)
+
+    ev = sub.add_parser("eval", help="客観評価")
+    ev.add_argument("--profile", default=None, help="往復評価するプロファイル（既定 cello_classical）")
+    ev.add_argument("--all", action="store_true", help="組み込みプロファイルすべて")
+    ev.add_argument("--seeds", type=int, default=1); ev.add_argument("--notes", type=int, default=40)
+    ev.add_argument("--igf", default=None); ev.add_argument("--igf2", default=None, help="2 つの IGF の分布を比較")
+    ev.add_argument("--json", default=None, help="結果を JSON に保存")
+    ev.set_defaults(func=cmd_eval)
 
     pl = sub.add_parser("plot", help="可視化 PNG（要 matplotlib）")
     pl.add_argument("output", help="出力 PNG")

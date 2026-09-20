@@ -37,16 +37,28 @@ def yin_f0(
     x: np.ndarray,
     sr: int,
     hop_s: float = 0.005,
-    fmin: float = 80.0,
+    fmin: float = 55.0,
     fmax: float = 1500.0,
     window_s: float = 0.023,
     threshold: float = 0.15,
     rms_gate: float = 0.005,
     batch: int = 256,
+    agc: bool = False,
+    agc_window_s: float = 0.012,
 ) -> F0Track:
+    """YIN による F0 抽出。
+
+    agc: 短い窓の RMS で振幅を平坦化してから解析する（実験用。往復評価では利点が小さく既定はオフ）。
+    """
     if fmax <= fmin:
         raise ValueError(f"fmax ({fmax}) は fmin ({fmin}) より大きい必要があります")
     x = np.asarray(x, dtype=np.float64)
+    x_raw = x
+    if agc:
+        w = max(int(sr * agc_window_s), 8)
+        env = np.sqrt(np.convolve(x ** 2, np.ones(w) / w, mode="same"))
+        floor = max(float(env.max()) * 1e-3, 1e-9)
+        x = x / np.maximum(env, floor)
     hop = max(int(round(sr * hop_s)), 1)
     W = max(int(sr * window_s), 64)
     max_lag = int(sr / fmin)
@@ -67,7 +79,7 @@ def yin_f0(
         idx = (np.arange(b0, b1) * hop)[:, None] + np.arange(L)[None, :]
         frames = x[idx]
         a = frames[:, :W]
-        rms = np.sqrt((a ** 2).mean(axis=1))
+        rms = np.sqrt((x_raw[idx[:, :W]] ** 2).mean(axis=1))  # 無声判定・ダイナミクスは元の振幅で
         rms_all[b0:b1] = rms
         # 相関 corr[tau] = sum_j a[j] * frames[j + tau]
         A = np.fft.rfft(a, N, axis=1)
@@ -123,7 +135,7 @@ def frame_rms(x: np.ndarray, sr: int, times: np.ndarray, window_s: float = 0.023
     return out
 
 
-def pyin_f0(x: np.ndarray, sr: int, hop_s: float = 0.005, fmin: float = 80.0, fmax: float = 1500.0, **_) -> F0Track:
+def pyin_f0(x: np.ndarray, sr: int, hop_s: float = 0.005, fmin: float = 55.0, fmax: float = 1500.0, **_) -> F0Track:
     """librosa.pyin による F0（任意依存）。voiced 確率を confidence にする。"""
     try:
         import librosa  # type: ignore

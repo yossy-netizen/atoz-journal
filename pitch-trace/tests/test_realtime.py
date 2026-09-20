@@ -158,3 +158,13 @@ def test_realtime_emits_dynamics_cc():
     tr2.handle(on(64), 0.0)
     tr2.tick(1.0)
     assert not any(m.type == "control_change" and m.control == 11 for m in out2)
+
+
+def test_key_auto_detects_from_recent_notes():
+    tr, out = make(key_auto=True)
+    t = 0.0
+    for pitch in (60, 62, 64, 65, 67, 69, 71, 72):
+        tr.handle(on(pitch), t)
+        tr.handle(off(pitch), t + 0.4)
+        t += 0.5
+    assert tr.key == (0, "major")

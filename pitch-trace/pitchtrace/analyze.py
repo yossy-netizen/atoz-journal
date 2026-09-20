@@ -201,7 +201,78 @@ def segment_notes(
             dev_run_start = None
     if start is not None:
         close(start, len(mc) - unvoiced_run)
-    return merge_glides(notes)
+    notes = merge_glides(notes)
+    if track.rms is not None and len(track.rms) == len(mc):
+        notes = split_on_energy_dips(notes, track, min_note_s=min_note_s)
+    return notes
+
+
+def split_on_energy_dips(notes: list[AnalyzedNote], track: F0Track, min_note_s: float = 0.06,
+                         dip_ratio: float = 0.5, recover_ratio: float = 0.8, window_s: float = 0.08,
+                         guard_s: float = 0.12) -> list[AnalyzedNote]:
+    """同じ音高が続く連打はピッチでは分けられないので、音量（RMS）の落ち込みで分ける。
+    直前の水準から dip_ratio 以下（約 -6 dB）に落ち、window_s 以内に recover_ratio まで戻る点を
+    新しい音符の開始とみなす。両側が min_note_s 以上あるときだけ分割する。"""
+    hop = track.hop_s
+    win = max(int(window_s / hop), 2)
+    min_n = max(int(round(min_note_s / hop)), 2)
+    out: list[AnalyzedNote] = []
+    carry: AnalyzedNote | None = None   # 次の音の頭に付ける短い末尾片（次の音への滑り）
+
+    def prepend(piece: AnalyzedNote, n: AnalyzedNote) -> AnalyzedNote:
+        return AnalyzedNote(pitch=n.pitch, onset=piece.onset, offset=n.offset,
+                            t=np.concatenate([piece.t, n.t]),
+                            dev=np.concatenate([piece.dev + (piece.pitch - n.pitch) * 100.0, n.dev]))
+
+    for idx, n in enumerate(notes):
+        if carry is not None:
+            n = prepend(carry, n)
+            carry = None
+        nxt = notes[idx + 1] if idx + 1 < len(notes) else None
+        i0 = int(np.searchsorted(track.times, n.onset))
+        i1 = i0 + len(n.t)
+        rms = track.rms[i0:i1]
+        if len(rms) < 3 * min_n:
+            out.append(n)
+            continue
+        cuts = []
+        last_cut = 0
+        # 先頭 guard_s はピッチ境界の直後なので見ない（境界がずれて二重に切るのを防ぐ）
+        k = max(win, int(guard_s / hop))
+        while k < len(rms) - win:
+            before = rms[max(k - win, last_cut):k].max()
+            if before > 0 and rms[k] <= dip_ratio * before:
+                # 落ち込みの底を探し、その後の回復を確認
+                j = k + int(np.argmin(rms[k:k + win]))
+                after = rms[j:j + win].max()
+                if after >= recover_ratio * before and j - last_cut >= min_n and len(rms) - j >= min_n:
+                    cuts.append(j)
+                    last_cut = j
+                    k = j + win
+                    continue
+            k += 1
+        if not cuts:
+            out.append(n)
+            continue
+        bounds = [0] + cuts + [len(n.t)]
+        pieces: list[AnalyzedNote] = []
+        for a, b in zip(bounds, bounds[1:]):
+            seg = n.dev[a:b]
+            good = seg[~np.isnan(seg)]
+            if len(good) < 2:
+                continue
+            pitch = int(round(np.median(good + n.pitch * 100.0) / 100.0))
+            pieces.append(AnalyzedNote(pitch=pitch, onset=float(n.t[a]), offset=float(n.t[b - 1] + hop),
+                                       t=n.t[a:b].copy(), dev=seg + (n.pitch - pitch) * 100.0))
+        # 末尾の短い片が次の音に隣接しているなら、それはピッチ境界が遅れた分（次の音への滑り）。
+        # 独立した音符にせず次の音の頭に付ける
+        if (len(pieces) >= 2 and nxt is not None and pieces[-1].duration <= 0.2
+                and nxt.onset - pieces[-1].offset <= 0.03):
+            carry = pieces.pop()
+        out.extend(pieces)
+    if carry is not None:
+        out.append(carry)
+    return out
 
 
 def merge_glides(notes: list[AnalyzedNote], max_len_s: float = 0.25, min_slope_cents_s: float = 400.0, gap_s: float = 0.03) -> list[AnalyzedNote]:
@@ -227,7 +298,11 @@ def merge_glides(notes: list[AnalyzedNote], max_len_s: float = 0.25, min_slope_c
                     and np.sign(tail_slope) == np.sign(slope) and abs(tail_slope) >= min_slope_cents_s * 0.5)
         nxt = notes[i + 1] if i + 1 < len(notes) else None
         prv = out[-1] if out else None
-        if is_glide and slope > 0 and nxt is not None and nxt.onset - n.offset <= gap_s:
+        # 向きで振り分ける（上向き = 次の音へのしゃくり、下向き = 前の音のフォール）。
+        # 音高の近さで振り分ける案は往復評価で悪化したため採用していない
+        to_next = is_glide and slope > 0 and nxt is not None and nxt.onset - n.offset <= gap_s
+        to_prev = is_glide and slope < 0 and prv is not None and n.onset - prv.offset <= gap_s
+        if to_next:
             # 上向きのしゃくり → 次の音の頭に付ける
             merged = AnalyzedNote(pitch=nxt.pitch, onset=n.onset, offset=nxt.offset,
                                   t=np.concatenate([n.t, nxt.t]),
@@ -235,7 +310,7 @@ def merge_glides(notes: list[AnalyzedNote], max_len_s: float = 0.25, min_slope_c
             notes[i + 1] = merged
             i += 1
             continue
-        if is_glide and slope < 0 and prv is not None and n.onset - prv.offset <= gap_s:
+        if to_prev:
             # 下向きのフォール → 前の音の尻に付ける
             prv.offset = n.offset
             prv.t = np.concatenate([prv.t, n.t])
@@ -266,6 +341,41 @@ def vibrato_envelope(dev: np.ndarray, hop_s: float, fmin: float = 3.0, fmax: flo
     bp = np.where(keep, X, 0)
     analytic = np.fft.ifft(np.concatenate([bp * 2, np.zeros(nfft - len(bp), dtype=complex)]))[:n]
     return np.abs(analytic)
+
+
+def estimate_attack(y: np.ndarray, hop_s: float, conf: np.ndarray | None = None, window_s: float = 0.12,
+                    min_conf: float = 0.9, max_skip_s: float = 0.03) -> tuple[float, float]:
+    """発音直後の偏差 y（イントネーション差し引き後）から、発音時点の偏差（セント）と
+    収束時間（ms）を推定する。
+
+    F0 抽出の窓が発音点をまたぐ最初の 15〜20 ms は信頼できない（信頼度が低い）ので捨て、
+    その後の指数減衰 y = A·exp(-t/τ) を対数線形回帰で当てはめて t=0（発音点）へ外挿する。"""
+    L = len(y)
+    settled = np.nonzero(np.abs(y) < 10.0)[0]
+    settle_ms = float(settled[0] * hop_s * 1000.0) if len(settled) else float(L * hop_s * 1000.0)
+    k0 = 0
+    if conf is not None and len(conf) >= len(y):
+        good = np.nonzero(conf[:L] >= min_conf)[0]
+        k0 = int(min(good[0], int(max_skip_s / hop_s))) if len(good) else int(max_skip_s / hop_s)
+    k1 = max(min(int(window_s / hop_s), L), k0 + 2)
+    seg = y[k0:k1]
+    if len(seg) == 0:
+        return 0.0, settle_ms
+    first = float(np.mean(seg[: min(3, len(seg))]))
+    sign = 1.0 if first >= 0 else -1.0
+    ok = (sign * seg > 3.0)
+    run = 0
+    while run < len(seg) and ok[run]:
+        run += 1
+    if run >= 3:
+        t = (k0 + np.arange(run)) * hop_s
+        coef = np.polyfit(t, np.log(sign * seg[:run]), 1)
+        if coef[0] < 0:  # 減衰している
+            A = sign * float(np.exp(coef[1]))
+            tau_ms = -1000.0 / coef[0]
+            if abs(A) <= 4.0 * max(abs(first), 3.0) and 5.0 <= tau_ms <= 600.0:
+                return A, settle_ms
+    return first, settle_ms
 
 
 def estimate_vibrato(dev: np.ndarray, hop_s: float, fmin: float = 3.5, fmax: float = 9.0, prominence: float = 2.5) -> dict | None:
@@ -302,8 +412,13 @@ def estimate_vibrato(dev: np.ndarray, hop_s: float, fmin: float = 3.5, fmax: flo
     depth = float(np.median(env[n // 2:]))
     if depth < 3.0:
         return None
-    above = np.nonzero(env > 0.5 * depth)[0]
-    onset = float(above[0] * hop_s) if len(above) else 0.0
+    # 開始とランプ: 包絡が 15% → 85% を越える時刻から、線形近似でランプの始点と長さを推定
+    lo_idx = np.nonzero(env > 0.15 * depth)[0]
+    t_lo = float(lo_idx[0] * hop_s) if len(lo_idx) else 0.0
+    hi_idx = np.nonzero(env[lo_idx[0]:] > 0.85 * depth)[0] if len(lo_idx) else np.zeros(0, dtype=int)
+    t_hi = float((lo_idx[0] + hi_idx[0]) * hop_s) if len(hi_idx) else t_lo
+    ramp = max((t_hi - t_lo) / 0.7, 0.02)
+    onset = max(t_lo - 0.15 * ramp, 0.0)
     # レートの精密化: 包絡が立った区間の瞬時周波数（位相の微分）の中央値。短い音では
     # スペクトルのピークより精度が高い
     phase = np.unwrap(np.angle(analytic))
@@ -313,7 +428,8 @@ def estimate_vibrato(dev: np.ndarray, hop_s: float, fmin: float = 3.5, fmax: flo
         r_inst = float(np.median(inst[mask]))
         if fmin <= r_inst <= fmax:
             rate = r_inst
-    return {"rate_hz": rate, "depth_cents": depth, "depth_fft_cents": depth_fft, "onset_ms": onset * 1000.0, "env": env}
+    return {"rate_hz": rate, "depth_cents": depth, "depth_fft_cents": depth_fft, "onset_ms": onset * 1000.0,
+            "ramp_ms": ramp * 1000.0, "env": env}
 
 
 def estimate_transition(track_mc: np.ndarray, times: np.ndarray, prev: AnalyzedNote, cur: AnalyzedNote, window_s: float = 0.15, smear_s: float = 0.03) -> dict | None:
@@ -361,6 +477,13 @@ def estimate_note_params(notes: list[AnalyzedNote], track: F0Track, max_gap_s: f
         a1 = max(L - int(0.06 / hop), a0 + 2)
         stable = dev[a0:a1] if a1 > a0 else dev
         into = float(np.median(stable))
+        # アタックのしゃくりが長い（ジャズのスクープ等）ときは、収束してから安定区間を始める
+        settled0 = np.nonzero(np.abs(dev - into) < 10.0)[0]
+        if len(settled0) and settled0[0] > a0:
+            a0 = min(int(settled0[0]) + 4, max(L // 2, a0))
+            a1 = max(L - int(0.06 / hop), a0 + 2)
+            stable = dev[a0:a1] if a1 > a0 else dev[a0:]
+            into = float(np.median(stable)) if len(stable) else into
         p["intonation_cents"] = into
         p["intonation_source"] = "stable"
 
@@ -373,11 +496,18 @@ def estimate_note_params(notes: list[AnalyzedNote], track: F0Track, max_gap_s: f
             tr = estimate_transition(mc, track.times, prev, n)
             if tr:
                 p.update({f"transition_{k}": v for k, v in tr.items()})
+                # 遷移が終わってから安定区間を始める（短い音で滑りが大半を占めるときの誤りを防ぐ）
+                k_end = int((tr["end_sec"] - n.onset) / hop) + 2
+                if k_end > a0 and k_end < L - 2:
+                    a0 = min(k_end, max(L * 2 // 3, a0))
+                    a1 = max(L - int(0.06 / hop), a0 + 2)
+                    stable = dev[a0:a1] if a1 > a0 else dev[a0:]
+                    if len(stable):
+                        into = float(np.median(stable))
+                        p["intonation_cents"] = into
         else:
-            first = float(np.mean(dev[: max(min(3, L), 1)])) - into
-            settled = np.nonzero(np.abs(dev - into) < 10.0)[0]
-            p["attack_cents"] = first
-            p["attack_settle_ms"] = float(settled[0] * hop * 1000.0) if len(settled) else float(L * hop * 1000.0)
+            i0c = int(np.searchsorted(track.times, n.onset))
+            p["attack_cents"], p["attack_settle_ms"] = estimate_attack(dev - into, hop, conf=track.confidence[i0c:i0c + L])
 
         # 信頼度: 音符全体と発音直後（アタックの推定が当てになるか）
         i0 = int(np.searchsorted(track.times, n.onset))
@@ -394,6 +524,7 @@ def estimate_note_params(notes: list[AnalyzedNote], track: F0Track, max_gap_s: f
             p["vibrato_rate_hz"] = vib["rate_hz"]
             p["vibrato_depth_cents"] = vib["depth_cents"]
             p["vibrato_onset_ms"] = vib["onset_ms"] + vib_off * hop * 1000.0
+            p["vibrato_ramp_ms"] = vib["ramp_ms"]
             # 中心のずれ: ビブラート前の中央値と、ビブラート中の中央値の差（depth 比）。
             # ビブラート前の区間が取れるなら、イントネーションはそこで測り直す
             k_on = int(vib["onset_ms"] / 1000.0 / hop)
@@ -537,6 +668,7 @@ def build_profile(notes: list[AnalyzedNote], base: Profile | None = None, name: 
                   for n, p in long_notes if p.get("vibrato")]
         P.vibrato.depth_cents = _dist(depths, P.vibrato.depth_cents)
         P.vibrato.onset_ms = _dist([p["vibrato_onset_ms"] for p in vib], P.vibrato.onset_ms, 0.0, None)
+        P.vibrato.ramp_ms = _dist([p["vibrato_ramp_ms"] for p in vib if "vibrato_ramp_ms" in p], P.vibrato.ramp_ms, 20.0, None)
         co = [p["vibrato_center_offset"] for p in vib if "vibrato_center_offset" in p]
         if co:
             P.vibrato.center_offset = float(np.median(co))
@@ -574,15 +706,15 @@ def build_profile(notes: list[AnalyzedNote], base: Profile | None = None, name: 
     return P
 
 
-def analyze_audio(x: np.ndarray, sr: int, hop_s: float = 0.005, fmin: float = 80.0, fmax: float = 1500.0,
-                  detector: str = "yin", tuning: float | None = None, octave_fix: bool = True) -> tuple[list[AnalyzedNote], F0Track]:
+def analyze_audio(x: np.ndarray, sr: int, hop_s: float = 0.005, fmin: float = 55.0, fmax: float = 1500.0,
+                  detector: str = "yin", tuning: float | None = None, octave_fix: bool = True, **detector_kw) -> tuple[list[AnalyzedNote], F0Track]:
     """音声 → 音符列（params 付き）と F0 軌跡。
 
     detector: 'yin'（内蔵）または 'pyin'（librosa）
     tuning: 基準ピッチ A4（Hz）。None なら録音から推定し、その分を偏差から差し引く
     octave_fix: 時間的連続性によるオクターブ誤検出の補正
     """
-    track = detect_f0(x, sr, detector=detector, hop_s=hop_s, fmin=fmin, fmax=fmax)
+    track = detect_f0(x, sr, detector=detector, hop_s=hop_s, fmin=fmin, fmax=fmax, **detector_kw)
     if octave_fix:
         fix_octave_errors(track)
     notes = segment_notes(track)

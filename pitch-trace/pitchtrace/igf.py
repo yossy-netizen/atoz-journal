@@ -83,6 +83,7 @@ def build_igf(notes: list[AnalyzedNote], track: F0Track, source: str = "", instr
             "vibrato": None if not p.get("vibrato") else {
                 "onset_ms": _f(p.get("vibrato_onset_ms"), 1), "mean_rate_hz": _f(p.get("vibrato_rate_hz")),
                 "mean_depth_cents": _f(p.get("vibrato_depth_cents")), "center_offset": _f(p.get("vibrato_center_offset")),
+                "ramp_ms": _f(p.get("vibrato_ramp_ms"), 1),
             },
             "release": None if "release_cents" not in p else {"cents": _f(p["release_cents"])},
             "dynamics": None if "dyn_attack_ms" not in p else {

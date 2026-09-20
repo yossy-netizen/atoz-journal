@@ -20,6 +20,7 @@ import mido
 import numpy as np
 
 from .generate import NoteContext, NoteContour, generate_note
+from .key import detect_key
 from .notes import Note
 from .profile import Profile
 from .render_midi import cents_to_bend, _mpe_config, _rpn_bend_range
@@ -50,7 +51,10 @@ class RealtimeTracer:
     legato_overlap_s: float = 0.0   # single モードで前の音を残す時間
     passthrough: bool = True        # ノート以外のメッセージをそのまま通す
     dynamics: bool = True           # ダイナミクス CC を出す
-    key: tuple[int, str] | None = None  # 調（度数バイアス用）。リアルタイムでは自動判定しない
+    key: tuple[int, str] | None = None  # 調（度数バイアス用）。key_auto=True なら直近の音符から推定して更新
+    key_auto: bool = False
+    key_window: int = 16                # 自動判定に使う直近の音符数
+    _recent: list = field(init=False, default_factory=list)
 
     rng: np.random.Generator = field(init=False)
     active: dict[int, _Active] = field(init=False, default_factory=dict)  # pitch → 状態
@@ -156,6 +160,13 @@ class RealtimeTracer:
     def _remember_prev(self, a: _Active, now: float) -> None:
         self._prev = self._context_from(a, now)
         self._prev_off_time = now
+        if self.key_auto:
+            self._recent.append(Note(pitch=a.pitch, onset=a.onset, duration=max(now - a.onset, 0.05)))
+            self._recent = self._recent[-self.key_window:]
+            if len(self._recent) >= 6:
+                pc, mode, r = detect_key(self._recent)
+                if r > 0.5:
+                    self.key = (pc, mode)
 
     def _note_off(self, pitch: int, now: float) -> None:
         a = self.active.pop(pitch, None)

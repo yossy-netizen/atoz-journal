@@ -106,6 +106,8 @@ def igf_to_fixed(r: dict, target_legato_in: bool) -> dict:
         fx["vibrato_rate_hz"] = float(vb["mean_rate_hz"])
         fx["vibrato_depth_cents"] = float(vb["mean_depth_cents"])
         fx["vibrato_onset_ms"] = float(vb.get("onset_ms") or 0.0)
+        if vb.get("ramp_ms"):
+            fx["vibrato_ramp_ms"] = float(vb["ramp_ms"])
     else:
         fx["vibrato"] = False
     su = r.get("sustain") or {}
