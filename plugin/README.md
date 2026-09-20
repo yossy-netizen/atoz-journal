@@ -99,7 +99,38 @@ cmake --build build --config Release
 - 生成物: `build/CVRider_artefacts/Release/VST3/CV Rider.vst3`（macOS では AU も）、Standalone アプリ
 - 手元に JUCE がある場合は `-DJUCE_DIR=/path/to/JUCE` を指定
 - Linux では `libasound2-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libfreetype-dev libfontconfig-dev` が必要
-- GUI は JUCE の汎用パラメータエディタ + 子音確率 / ゲインの簡易メーターです
+- GUI は専用エディタ（母音 / 子音 / 検出器 / 出力のノブ群、子音確率バー、ゲイン・レベルのスコープ）
+
+#### macOS（Mac mini M4 でのテスト運用 → Mac Studio M2 での本番使用）
+
+**A. CI のビルド成果物を使う（ビルド環境不要）**
+
+1. GitHub の Actions タブ → 最新の「plugin tests」ラン → Artifacts の `cvrider-macos` をダウンロードして展開
+2. ターミナルで:
+   ```bash
+   cd cvrider-macos
+   chmod +x install-mac.sh && ./install-mac.sh .
+   ```
+   AU / VST3 を `~/Library/Audio/Plug-Ins/` にコピーし、ダウンロード時の隔離属性を外してアドホック署名し、`auval` で検証します。
+3. DAW を再起動してプラグインを再スキャン（Logic は自動、Cubase / Studio One は設定から）
+
+**B. Mac 上でビルドする**
+
+```bash
+xcode-select --install          # 初回のみ
+brew install cmake              # 初回のみ
+cd plugin/juce && ./build-mac.sh
+```
+
+`build-mac.sh` は AU + VST3 + Standalone をユニバーサル（arm64 + x86_64、macOS 11 以降）でビルドし、
+アドホック署名してユーザーのプラグインフォルダにインストール、`auval` を実行します。
+
+**運用メモ**
+
+- CI（`macos-latest` = Apple Silicon）で毎回 `auval -v aufx Cvrd AtoZ` と pluginval（strictness 10）を AU / VST3 の両方に通しています。
+- Developer ID 署名 / 公証はしていないので、他の Mac に配る場合も `install-mac.sh` の手順（隔離属性の除去 + アドホック署名）が必要です。
+- ルックアヘッド（既定 3 ms）分のレイテンシをホストに報告するので、DAW の自動遅延補償が効きます。
+- 本番投入の前に、Mac mini 側で以下を確認することを推奨します: AU / VST3 の両方でプロジェクト保存→再読込後にパラメータが復元されること、44.1 / 48 / 96 kHz、バウンス（オフラインレンダリング）の結果がリアルタイム再生と一致すること。
 
 ### ブラウザ版デモ
 

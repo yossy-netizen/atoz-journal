@@ -2,3 +2,4 @@ build/
 *.o
 cpp/test/test_cvrider
 node_modules/
+dist/

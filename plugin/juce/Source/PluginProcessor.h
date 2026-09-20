@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <array>
 #include "CVRider.h"
 
 namespace ParamID {
@@ -59,6 +60,16 @@ public:
                  meterGain.load(std::memory_order_relaxed) };
     }
 
+    // Meter history for the editor's scope: the audio thread appends a snapshot roughly every 10 ms,
+    // the editor drains new frames with readMeterFrames(). Single producer / single consumer.
+    static constexpr int kMeterRingSize = 1024;
+    int getMeterWritePos() const { return meterWrite.load(std::memory_order_acquire); }
+    template <typename Fn> void readMeterFrames(int& readPos, Fn&& fn) const {
+        const int w = meterWrite.load(std::memory_order_acquire);
+        if (w - readPos > kMeterRingSize) readPos = w - kMeterRingSize;   // fell behind: skip ahead
+        for (; readPos < w; ++readPos) fn(meterRing[static_cast<size_t>(readPos % kMeterRingSize)]);
+    }
+
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
     cvrider::Params readParams() const;
@@ -67,6 +78,9 @@ private:
     cvrider::CVRider rider;
     // per-field atomics keep this lock-free (a 20-byte atomic struct would need libatomic)
     std::atomic<float> meterLevel { -120.0f }, meterProb { 0.0f }, meterGv { 0.0f }, meterGc { 0.0f }, meterGain { 0.0f };
+    std::array<cvrider::Meters, kMeterRingSize> meterRing {};
+    std::atomic<int> meterWrite { 0 };
+    int meterAccum = 0, meterInterval = 480;
     int reportedLatency = -1;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CVRiderAudioProcessor)

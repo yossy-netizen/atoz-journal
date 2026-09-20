@@ -55,3 +55,68 @@ jobs:
         run: |
           test -f "plugin/juce/build/CVRider_artefacts/Release/VST3/CV Rider.vst3/Contents/x86_64-linux/CV Rider.so"
           test -f "plugin/juce/build/CVRider_artefacts/Release/Standalone/CV Rider"
+      - name: pluginval (VST3, strictness 10)
+        run: |
+          curl -sSL -o pluginval.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Linux.zip
+          unzip -q pluginval.zip
+          sudo apt-get install -y xvfb
+          xvfb-run -a ./pluginval --strictness-level 10 --validate-in-process --output-dir pluginval-logs \
+            "plugin/juce/build/CVRider_artefacts/Release/VST3/CV Rider.vst3"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pluginval-logs-linux
+          path: pluginval-logs
+          if-no-files-found: ignore
+
+  macos:
+    name: macOS build (AU + VST3 universal) + auval + pluginval
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure (fetches JUCE 8.0.4)
+        working-directory: plugin/juce
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+      - name: Build
+        working-directory: plugin/juce
+        run: cmake --build build --config Release -j"$(sysctl -n hw.ncpu)"
+      - name: Ad-hoc sign and check architectures
+        working-directory: plugin/juce/build/CVRider_artefacts/Release
+        run: |
+          for b in "AU/CV Rider.component" "VST3/CV Rider.vst3" "Standalone/CV Rider.app"; do
+            codesign --force --deep --sign - "$b"
+          done
+          lipo -info "VST3/CV Rider.vst3/Contents/MacOS/CV Rider"
+          lipo -info "AU/CV Rider.component/Contents/MacOS/CV Rider"
+      - name: Install AU and run auval
+        working-directory: plugin/juce/build/CVRider_artefacts/Release
+        run: |
+          mkdir -p ~/Library/Audio/Plug-Ins/Components ~/Library/Audio/Plug-Ins/VST3
+          cp -R "AU/CV Rider.component" ~/Library/Audio/Plug-Ins/Components/
+          cp -R "VST3/CV Rider.vst3" ~/Library/Audio/Plug-Ins/VST3/
+          killall -9 AudioComponentRegistrar 2>/dev/null || true
+          auval -v aufx Cvrd AtoZ
+      - name: pluginval (AU + VST3, strictness 10)
+        run: |
+          curl -sSL -o pluginval.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
+          unzip -q pluginval.zip
+          ./pluginval.app/Contents/MacOS/pluginval --strictness-level 10 --validate-in-process --output-dir pluginval-logs \
+            "$HOME/Library/Audio/Plug-Ins/VST3/CV Rider.vst3"
+          ./pluginval.app/Contents/MacOS/pluginval --strictness-level 10 --validate-in-process --output-dir pluginval-logs \
+            "$HOME/Library/Audio/Plug-Ins/Components/CV Rider.component"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pluginval-logs-macos
+          path: pluginval-logs
+          if-no-files-found: ignore
+      - name: Package bundles
+        working-directory: plugin/juce/build/CVRider_artefacts/Release
+        run: |
+          mkdir -p ../../../dist
+          cp -R "AU/CV Rider.component" "VST3/CV Rider.vst3" "Standalone/CV Rider.app" ../../../dist/
+          cp ../../../install-mac.sh ../../../dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cvrider-macos
+          path: plugin/juce/dist

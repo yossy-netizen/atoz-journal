@@ -86,6 +86,8 @@ cvrider::Params CVRiderAudioProcessor::readParams() const {
 void CVRiderAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     rider.prepare(sampleRate, getTotalNumOutputChannels(), samplesPerBlock);
     rider.setParams(readParams());
+    meterInterval = juce::jmax(1, static_cast<int>(sampleRate / 100.0));   // ~10 ms per scope frame
+    meterAccum = 0;
     reportedLatency = rider.getLatencySamples();
     setLatencySamples(reportedLatency);
 }
@@ -115,6 +117,14 @@ void CVRiderAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     meterGv.store(m.vowelGainDb, std::memory_order_relaxed);
     meterGc.store(m.consGainDb, std::memory_order_relaxed);
     meterGain.store(m.gainDb, std::memory_order_relaxed);
+
+    meterAccum += buffer.getNumSamples();
+    if (meterAccum >= meterInterval) {
+        meterAccum = 0;
+        const int w = meterWrite.load(std::memory_order_relaxed);
+        meterRing[static_cast<size_t>(w % kMeterRingSize)] = m;
+        meterWrite.store(w + 1, std::memory_order_release);
+    }
 }
 
 juce::AudioProcessorEditor* CVRiderAudioProcessor::createEditor() { return new CVRiderAudioProcessorEditor(*this); }

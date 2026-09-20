@@ -6,6 +6,16 @@
 # Or point at an existing JUCE checkout:
 #   cmake -B build -DJUCE_DIR=/path/to/JUCE
 cmake_minimum_required(VERSION 3.22)
+
+# macOS: universal binary (Apple Silicon + Intel/Rosetta hosts), macOS 11+.
+# Must be set before project().
+if(APPLE AND NOT CMAKE_OSX_ARCHITECTURES)
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "" FORCE)
+endif()
+if(APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "" FORCE)
+endif()
+
 project(CVRider VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -22,6 +32,8 @@ else()
     FetchContent_MakeAvailable(JUCE)
 endif()
 
+option(CVRIDER_COPY_AFTER_BUILD "Install the plugin into the user plug-in folders after building" OFF)
+
 set(CVRIDER_FORMATS VST3 Standalone)
 if(APPLE)
     list(APPEND CVRIDER_FORMATS AU)
@@ -36,8 +48,10 @@ juce_add_plugin(CVRider
     IS_SYNTH                    FALSE
     NEEDS_MIDI_INPUT            FALSE
     NEEDS_MIDI_OUTPUT           FALSE
-    COPY_PLUGIN_AFTER_BUILD     FALSE
-    VST3_CATEGORIES             Fx Dynamics)
+    COPY_PLUGIN_AFTER_BUILD     ${CVRIDER_COPY_AFTER_BUILD}
+    BUNDLE_ID                   com.atoz-studio.cvrider
+    VST3_CATEGORIES             Fx Dynamics
+    AU_MAIN_TYPE                kAudioUnitType_Effect)
 
 target_sources(CVRider PRIVATE
     Source/PluginProcessor.cpp
