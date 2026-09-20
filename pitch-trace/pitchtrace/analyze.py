@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .f0 import F0Track, yin_f0
+from .f0 import F0Track, detect_f0
 from .key import detect_key
 from .notes import Note
 from .generate import _moving_average
@@ -56,6 +56,65 @@ def _fill_nan(x: np.ndarray) -> np.ndarray:
         idx = np.arange(len(x))
         x[bad] = np.interp(idx[bad], idx[~bad], x[~bad])
     return x
+
+
+def fix_octave_errors(track: F0Track, window: int = 15, jump_cents: float = 900.0, accept_cents: float = 250.0) -> int:
+    """時間的連続性に基づくオクターブ誤検出の補正。近傍の中央値から 1 オクターブ前後ずれた
+    フレームを、±1200 セントで近傍に収まるなら移す。修正前の値は track.raw_f0_hz に残る。戻り値は修正数。"""
+    mc = track.midicents
+    voiced = ~np.isnan(mc)
+    if voiced.sum() < window:
+        return 0
+    filled = _fill_nan(mc)
+    ref = _median_filter(filled, window)
+    fixed = 0
+    f0 = track.f0_hz
+    for i in np.nonzero(voiced)[0]:
+        d = mc[i] - ref[i]
+        if abs(d) < jump_cents:
+            continue
+        for shift in (-1200.0, 1200.0, -2400.0, 2400.0):
+            if abs(d + shift) < accept_cents:
+                f0[i] = f0[i] * 2.0 ** (shift / 1200.0)
+                fixed += 1
+                break
+    return fixed
+
+
+def estimate_tuning(notes: list[AnalyzedNote], track: F0Track) -> float:
+    """音符ごとのイントネーション推定値（ビブラート開始前の区間を優先した中央値）の
+    音長重み付き中央値から基準ピッチ A4 を推定する。442 Hz の録音を「常に +8 セント高い奏者」と
+    誤認しないため。estimate_note_params の後に呼ぶ（params が無い音符は安定区間の中央値を使う）。"""
+    hop = track.hop_s
+    vals = []
+    weights = []
+    for n in notes:
+        if "intonation_novib_cents" in n.params:
+            vals.append(float(n.params["intonation_novib_cents"]))
+            weights.append(n.params["novib_frames"] * hop)
+            continue
+        if "intonation_cents" in n.params:
+            vals.append(float(n.params["intonation_cents"]))
+            # ビブラートの中心ずれを含む推定値は重みを下げる
+            w = 0.25 if n.params.get("intonation_source") == "stable_with_vibrato" else 1.0
+            weights.append(n.duration * w)
+            continue
+        dev = _fill_nan(n.dev)
+        L = len(dev)
+        a0 = min(int(0.08 / hop), L // 3)
+        a1 = max(L - int(0.06 / hop), a0 + 2)
+        seg = dev[a0:a1] if a1 > a0 else dev
+        if len(seg):
+            vals.append(float(np.median(seg)))
+            weights.append(n.duration)
+    if not vals:
+        return 440.0
+    order = np.argsort(vals)
+    v = np.array(vals)[order]
+    w = np.array(weights)[order]
+    cum = np.cumsum(w) / w.sum()
+    offset = float(v[int(np.searchsorted(cum, 0.5))])
+    return float(440.0 * 2.0 ** (offset / 1200.0))
 
 
 def segment_notes(
@@ -192,6 +251,23 @@ def merge_glides(notes: list[AnalyzedNote], max_len_s: float = 0.25, min_slope_c
 # 成分推定
 # ----------------------------------------------------------------------------
 
+def vibrato_envelope(dev: np.ndarray, hop_s: float, fmin: float = 3.0, fmax: float = 9.5) -> np.ndarray:
+    """ビブラート帯域（fmin〜fmax Hz）の解析信号の包絡（セント）。検出の可否に関わらず使える。"""
+    n = len(dev)
+    if n < 8:
+        return np.zeros(n)
+    x = _fill_nan(dev)
+    tt = np.arange(n)
+    x = x - np.polyval(np.polyfit(tt, x, 1), tt)
+    nfft = 1 << int(np.ceil(np.log2(n * 4)))
+    X = np.fft.rfft(x, nfft)
+    freqs = np.fft.rfftfreq(nfft, hop_s)
+    keep = (freqs >= fmin) & (freqs <= fmax)
+    bp = np.where(keep, X, 0)
+    analytic = np.fft.ifft(np.concatenate([bp * 2, np.zeros(nfft - len(bp), dtype=complex)]))[:n]
+    return np.abs(analytic)
+
+
 def estimate_vibrato(dev: np.ndarray, hop_s: float, fmin: float = 3.5, fmax: float = 9.0, prominence: float = 2.5) -> dict | None:
     """安定区間の偏差からビブラート（rate / depth / onset）を推定する。なければ None。"""
     n = len(dev)
@@ -228,6 +304,15 @@ def estimate_vibrato(dev: np.ndarray, hop_s: float, fmin: float = 3.5, fmax: flo
         return None
     above = np.nonzero(env > 0.5 * depth)[0]
     onset = float(above[0] * hop_s) if len(above) else 0.0
+    # レートの精密化: 包絡が立った区間の瞬時周波数（位相の微分）の中央値。短い音では
+    # スペクトルのピークより精度が高い
+    phase = np.unwrap(np.angle(analytic))
+    inst = np.diff(phase) / (2.0 * np.pi * hop_s)
+    mask = env[1:] > 0.5 * depth
+    if mask.sum() >= int(0.25 / hop_s):
+        r_inst = float(np.median(inst[mask]))
+        if fmin <= r_inst <= fmax:
+            rate = r_inst
     return {"rate_hz": rate, "depth_cents": depth, "depth_fft_cents": depth_fft, "onset_ms": onset * 1000.0, "env": env}
 
 
@@ -258,7 +343,10 @@ def estimate_transition(track_mc: np.ndarray, times: np.ndarray, prev: AnalyzedN
     hop = float(np.median(np.diff(tt))) if len(tt) > 1 else 0.005
     after = prog[i80: i80 + int(0.1 / hop) + 1]
     overshoot = max(float(after.max() - 1.0), 0.0) * abs(interval) if len(after) else 0.0
-    return {"portamento": dur > 0.012, "duration_ms": dur * 1000.0, "interval": interval / 100.0, "overshoot_cents": overshoot}
+    span = max(tt[i80] - tt[i20], hop)
+    # 20→80% から 0→100% の位置を外挿（遷移境界はノート境界と別に持つ）
+    return {"portamento": dur > 0.012, "duration_ms": dur * 1000.0, "interval": interval / 100.0, "overshoot_cents": overshoot,
+            "start_sec": float(tt[i20] - span / 3.0), "end_sec": float(tt[i80] + span / 3.0)}
 
 
 def estimate_note_params(notes: list[AnalyzedNote], track: F0Track, max_gap_s: float = 0.04) -> None:
@@ -274,6 +362,7 @@ def estimate_note_params(notes: list[AnalyzedNote], track: F0Track, max_gap_s: f
         stable = dev[a0:a1] if a1 > a0 else dev
         into = float(np.median(stable))
         p["intonation_cents"] = into
+        p["intonation_source"] = "stable"
 
         prev = notes[i - 1] if i > 0 else None
         nxt = notes[i + 1] if i + 1 < len(notes) else None
@@ -289,6 +378,14 @@ def estimate_note_params(notes: list[AnalyzedNote], track: F0Track, max_gap_s: f
             settled = np.nonzero(np.abs(dev - into) < 10.0)[0]
             p["attack_cents"] = first
             p["attack_settle_ms"] = float(settled[0] * hop * 1000.0) if len(settled) else float(L * hop * 1000.0)
+
+        # 信頼度: 音符全体と発音直後（アタックの推定が当てになるか）
+        i0 = int(np.searchsorted(track.times, n.onset))
+        i1 = max(int(np.searchsorted(track.times, n.offset)), i0 + 1)
+        conf = track.confidence[i0:i1]
+        p["confidence"] = float(np.mean(conf)) if len(conf) else 0.0
+        k40 = max(int(0.04 / hop), 1)
+        p["attack_confidence"] = float(np.mean(conf[:k40])) if len(conf) else 0.0
 
         vib_src, vib_off = (stable, a0) if len(stable) * hop >= 0.3 else (dev[a0:], a0)
         vib = estimate_vibrato(vib_src, hop)
@@ -306,8 +403,19 @@ def estimate_note_params(notes: list[AnalyzedNote], track: F0Track, max_gap_s: f
                 p["vibrato_center_offset"] = float(np.clip((dur_med - pre) / max(vib["depth_cents"], 1e-6), -1, 1))
                 into = pre
                 p["intonation_cents"] = into
+                p["intonation_source"] = "pre_vibrato"
+            else:
+                # ビブラート開始前の区間が取れない: 中央値はビブラートの中心ずれを含む
+                p["intonation_source"] = "stable_with_vibrato"
         else:
             p["vibrato"] = False
+        # ビブラートの振幅が小さいフレームだけの中央値: 検出しきい値未満のビブラートでも中心ずれを含まない。
+        # 基準ピッチ推定に使う
+        env = vibrato_envelope(vib_src, hop)
+        quiet = vib_src[env < 6.0] if len(env) == len(vib_src) else vib_src
+        if len(quiet) >= int(0.04 / hop):
+            p["intonation_novib_cents"] = float(np.median(quiet))
+            p["novib_frames"] = int(len(quiet))
 
         lp = _moving_average(stable, max(int(0.4 / hop), 1))
         p["drift_cents"] = float(np.std(lp - into)) if len(lp) > 2 else 0.0
@@ -355,7 +463,7 @@ def _dist(values, default: Dist, lo=None, hi=None) -> Dist:
     return d
 
 
-def build_profile(notes: list[AnalyzedNote], base: Profile | None = None, name: str = "analyzed", instrument: str = "unknown", style: str = "unknown", hop_s: float = 0.005) -> Profile:
+def build_profile(notes: list[AnalyzedNote], base: Profile | None = None, name: str = "analyzed", instrument: str = "unknown", style: str = "unknown", hop_s: float = 0.005, tuning_hz: float | None = None) -> Profile:
     """解析済み音符列から Profile を作る。推定できない項目は base（または既定値）を使う。"""
     P = Profile.from_dict(base.to_dict()) if base else Profile()
     P.name, P.instrument, P.style = name, instrument, style
@@ -452,6 +560,7 @@ def build_profile(notes: list[AnalyzedNote], base: Profile | None = None, name: 
             P.dynamics.release_to = _dist(rel_to, P.dynamics.release_to, 0.02, 1.0)
 
     P.stats = {
+        "reference_tuning_hz": round(float(tuning_hz), 2) if tuning_hz else None,
         "key": f"{tonic}:{mode}",
         "key_degrees_filled": filled,
         "n_notes": len(notes),
@@ -465,9 +574,27 @@ def build_profile(notes: list[AnalyzedNote], base: Profile | None = None, name: 
     return P
 
 
-def analyze_audio(x: np.ndarray, sr: int, hop_s: float = 0.005, fmin: float = 80.0, fmax: float = 1500.0) -> tuple[list[AnalyzedNote], F0Track]:
-    """音声 → 音符列（params 付き）と F0 軌跡。"""
-    track = yin_f0(x, sr, hop_s=hop_s, fmin=fmin, fmax=fmax)
+def analyze_audio(x: np.ndarray, sr: int, hop_s: float = 0.005, fmin: float = 80.0, fmax: float = 1500.0,
+                  detector: str = "yin", tuning: float | None = None, octave_fix: bool = True) -> tuple[list[AnalyzedNote], F0Track]:
+    """音声 → 音符列（params 付き）と F0 軌跡。
+
+    detector: 'yin'（内蔵）または 'pyin'（librosa）
+    tuning: 基準ピッチ A4（Hz）。None なら録音から推定し、その分を偏差から差し引く
+    octave_fix: 時間的連続性によるオクターブ誤検出の補正
+    """
+    track = detect_f0(x, sr, detector=detector, hop_s=hop_s, fmin=fmin, fmax=fmax)
+    if octave_fix:
+        fix_octave_errors(track)
     notes = segment_notes(track)
-    estimate_note_params(notes, track)
+    if tuning:
+        tuning_hz = float(tuning)
+    else:
+        estimate_note_params(notes, track)   # 1 回目: 基準ピッチ推定のためのイントネーション
+        tuning_hz = estimate_tuning(notes, track)
+    offset = 1200.0 * np.log2(tuning_hz / 440.0)
+    track.tuning_hz = tuning_hz
+    if abs(offset) > 1e-9:
+        for n in notes:
+            n.dev = n.dev - offset
+    estimate_note_params(notes, track)       # 基準ピッチを差し引いた偏差で確定
     return notes, track

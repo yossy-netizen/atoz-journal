@@ -1,10 +1,11 @@
-# PitchTrace（v0.1 プロトタイプ）
+# PitchTrace（v0.2 プロトタイプ）
 
 生楽器（バイオリン・チェロ・オーボエ・サックス等、単旋律）の**ピッチの揺らぎ・繋ぎ・外し方**を
 プロファイル化し、MIDI 打ち込みにピッチベンド / MPE / CC として付与するツール。
 構想は [`../notes/pitch-trace/CONCEPT.md`](../notes/pitch-trace/CONCEPT.md)。
 
-この v0.1 は構想のフェーズ 0〜1（L0: ルール + 統計エンジン、スタンドアロン CLI）に相当する。
+この v0.2 は構想のフェーズ 0〜1（L0: ルール + 統計エンジン、スタンドアロン CLI）に、中間表現 IGF と
+参照演奏の転写（Reference Performance Transfer）、リアルタイム処理を加えたもの。
 
 ## できること
 
@@ -12,21 +13,25 @@
 |---|---|
 | `pitchtrace info song.mid` | トラック一覧（番号・音符数・音域・テンポチェンジ） |
 | `pitchtrace render in.mid out.mid --profile violin_classical` | MIDI に表情（ピッチベンド + CC11）を付ける。`--track N` で曲全体の MIDI の 1 トラックだけ差し替え（他トラックとテンポマップは保持）。`--mode mpe` で MPE、`--vibrato-lane cc` でビブラートを CC1 に分離 |
-| `pitchtrace analyze solo.wav -o my_violin.json --base violin_classical` | ソロ録音（無伴奏・単旋律）からプロファイルを推定。出力はそのまま `--profile` に渡せる |
+| `pitchtrace analyze solo.wav -o my_violin.json --base violin_classical` | ソロ録音（無伴奏・単旋律）からプロファイル（統計）を推定。出力はそのまま `--profile` に渡せる |
+| `pitchtrace analyze solo.wav --igf solo.igf.json` | 音符ごとのジェスチャー + 生カーブを IGF（中間表現）として保存。`--detector pyin`、`--tuning 442` |
+| `pitchtrace transfer cello_ref.wav melody.mid out.mid` | **参照演奏のジェスチャーを別の MIDI へ転写**。`--adapt param|raw`、`--mapping positional|context`、`--map 0,1,3,-`、`--wav` で試聴用 WAV |
+| `pitchtrace plot out.png --igf solo.igf.json --midi melody.mid --profile cello_classical` | 可視化（生 F0・正規化カーブ・信頼度・境界・生成カーブ・ダイナミクス）。要 matplotlib |
+| `pitchtrace demo out_dir --profile cello_classical --blind` | 静止 / ランダム・ヒューマナイズ / ジェスチャーをシャッフルした X/Y/Z WAV（答えは別ファイル） |
 | `pitchtrace demo out_dir --profile alto_sax_jazz` | 静止ピッチ版とトレース版の WAV / MIDI を出力（A/B 試聴用） |
 | `pitchtrace dump in.mid out.csv` | 生成したカーブを成分ごとに CSV へ（可視化・検証用） |
 | `pitchtrace live --profile violin_classical` | 仮想 MIDI ポート `PitchTrace In/Out` を作り、DAW からリアルタイムに受けてピッチベンド付きで返す（要 `pip install python-rtmidi`） |
 | `pitchtrace ports` | MIDI ポート一覧 |
 | `pitchtrace profiles` | 組み込みプロファイル一覧 |
 
-組み込みプロファイル: `violin_classical` `cello_classical` `oboe_classical` `alto_sax_classical` `alto_sax_jazz`
+組み込みプロファイル: `violin_classical` `cello_classical` `oboe_classical` `alto_sax_classical` `alto_sax_jazz`（比較用 `random_humanize`）
 （v0 は文献値と経験則による**手調整の目安**。実測で更新する前提）
 
 ## セットアップ
 
 ```bash
 cd pitch-trace
-pip install -e ".[dev,live]"     # live はリアルタイム用（python-rtmidi）。不要なら ".[dev]"
+pip install -e ".[dev,live,viz]" # live はリアルタイム用（python-rtmidi）、viz は plot 用（matplotlib）、analysis は pYIN 用（librosa）
 python -m pytest -q
 pitchtrace demo /tmp/pt_demo --profile violin_classical   # demo_static.wav と demo_violin_classical.wav を聴き比べ
 ```
@@ -71,6 +76,24 @@ c(t) = intonation + transition(t) + attack(t) + vibrato(t) + drift(t) + release(
 - ビブラート・レガートが録音に焼き込まれた音源では二重にかかる。物理モデル系（SWAM 等）や
   ビブラートを CC で制御できる音源（`--vibrato-lane cc`）が相性が良い
 - レガート検出に重なりが要る音源は `--legato-overlap-ms 20` などで重なりを残す
+
+## IGF（Instrument Gesture Format）と転写
+
+`analyze --igf` は解析結果を IGF（JSON）として保存する。音符ごとに、目標音からのセント偏差の
+生カーブ（時間・セント・信頼度・補正前の生 F0）、意味パラメータ（アタック・遷移・ビブラート・
+ドリフト・リリース・ダイナミクス）、前後関係（音程差・レガート・隙間）を持ち、解析器のバージョン、
+基準ピッチ（A=442 などを推定）、調を記録する。生成モデルや MIDI 規格に依存しない中間表現で、
+将来の再解析や学習データの単位になる。
+
+`transfer` は参照演奏（WAV か IGF）のジェスチャーをターゲット MIDI へ転写する。
+
+- 対応付け: `positional`（i 番目 → i 番目、循環）、`context`（音長・前後の音程差・レガート・音域が近い
+  上位 K からランダム）、`--map` で手動
+- 適応 `param`: 参照音符の意味パラメータを固定値として生成器に渡し、ターゲットの音長で再生成する。
+  ビブラートのレートは保たれ、音長が大きく違っても破綻しにくい（既定）
+- 適応 `raw`: 参照の生カーブをそのまま使う。遷移区間はターゲットの音程差でスケールし、アタックと末尾は
+  元の時間を保ち、サステインだけ切り詰め／クロスフェードで継ぎ足す。参照のビブラートの形が残る
+- `--amount` と `--amount-vibrato` などで成分ごとに量を変えられる（1.5 で誇張）
 
 ## リアルタイム動作
 

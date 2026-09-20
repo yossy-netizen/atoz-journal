@@ -27,9 +27,9 @@ fi
 source .venv/bin/activate
 python -m pip install --upgrade pip --quiet
 if [ "${1:-}" = "--live" ]; then
-  python -m pip install -e ".[dev,live]" --quiet
+  python -m pip install -e ".[dev,live,viz]" --quiet
 else
-  python -m pip install -e ".[dev]" --quiet
+  python -m pip install -e ".[dev,viz]" --quiet
 fi
 
 echo "--- テスト ---"

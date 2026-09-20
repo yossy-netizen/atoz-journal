@@ -1,7 +1,7 @@
-# 生楽器ピッチ挙動トレース・プラグイン 構想メモ（v0.1）
+# 生楽器ピッチ挙動トレース・プラグイン 構想メモ（v0.2）
 
 作成日: 2026-09-20
-ステータス: 構想 + v0.1 プロトタイプ実装済み（`pitch-trace/` 参照。フェーズ 0〜1 の L0 エンジン・CLI・解析）
+ステータス: 構想 + v0.2 プロトタイプ実装済み（`pitch-trace/` 参照。L0 エンジン・CLI・解析・IGF・参照演奏の転写・リアルタイム）
 仮称: **PitchTrace**（以下、本メモではこの名で呼ぶ）
 
 ---
@@ -183,9 +183,43 @@ Kontakt 系の多くはビブラートやレガート遷移が録音に焼き込
 
 ---
 
-## 10. 次のアクション
+## 10. 「Instrument Gesture Model 開発ロードマップ仕様書 v0.1」の採否
 
-1. フェーズ 0 の対象楽器と奏者を決める（バイオリン + アルトサックスを提案）
-2. 収録メニュー（スケール / ロングトーン / 跳躍 / 実曲フレーズ）のドラフトを書く
-3. F0 抽出 → 可視化のノートブックを用意し、1 本目の録音で分解モデルの妥当性を見る
-4. 出力先の音源を決める（SWAM Violin / SWAM Saxophones を第一候補）
+別途提示された仕様書（Pitch Gesture / IGF / Reference Transfer / Gesture Library / AI）について、
+本構想との整合を確認し、次のように取り込んだ。
+
+| 仕様書の項目 | 採否 | 対応 |
+|---|---|---|
+| Pitch を軌跡として扱う、成分分解（§2, §110） | 採用済み | §2 の分解モデルと同一。`generate.py` |
+| Raw Curve + Semantic Parameters + Context を持つ中間表現 IGF（§4-6, §46, §118-121） | **採用** | `igf.py`（schema 0.1）。音符ごとに生カーブ（時間・セント・信頼度・生 F0）、意味パラメータ、前後関係、解析器バージョン、基準ピッチ、調 |
+| Reference Performance Transfer を MVP にする（§19-21, §53-55, §122-128） | **採用** | `transfer.py` + `pitchtrace transfer`。位置対応 / 文脈対応（Top-K）/ 手動対応。適応は param（意味パラメータで再生成）と raw（生カーブをアタック・サステイン・遷移に分けて時間適応、ビブラートのレート維持） |
+| Gesture Amount と成分ごとの量、100% 超の誇張（§25-26, §127-128） | **採用** | `--amount` と `--amount-vibrato` 等（COMPONENTS）。1.5 で誇張 |
+| 内部時間は秒、ピッチはセント偏差、MIDI 解像度を内部にしない（§91-92, §23） | 採用済み | 生成は秒・float セント。tick 化は書き出し時のみ |
+| 基準ピッチ推定（A=442 を奏者の癖と誤認しない）（§93） | **採用** | `estimate_tuning`。IGF とプロファイル stats に記録、`--tuning` で固定可 |
+| Note-Level と Gesture-Level 解析の分離、F0 検出器の交換可能性（§94-98） | **採用（口だけ）** | `detect_f0(detector=...)`。YIN 内蔵、pYIN は librosa 任意依存。CREPE 等は同じ口で追加 |
+| Raw F0 を捨てない、オクターブ誤検出の連続性による補正（§101-102） | **採用** | `F0Track.raw_f0_hz`、`fix_octave_errors` |
+| Confidence を保持し不確実性を消さない（§103-104） | 一部採用 | 音符ごと・アタック区間の信頼度を IGF に記録。補間区間のマーキングは未対応 |
+| Transition 境界と Note 境界の分離（§106） | **採用** | `transition_in.start_sec / end_sec` を音符境界とは別に記録 |
+| Intonation と Gesture の分離（§109） | 採用済み | 度数バイアス + ランダム成分 + 局所ジェスチャー |
+| Vibrato を正弦波に還元しない（§114） | 一部採用 | 生カーブは IGF に保持し raw 転写で使う。生成側は非対称・揺らぎ付き正弦波 |
+| Random Humanize とのブラインド比較（§59-62） | **採用** | `random_humanize` プロファイルと `demo --blind`（X/Y/Z にシャッフル、答えは別ファイル） |
+| Visualizer（§58） | **採用** | `pitchtrace plot`（matplotlib 任意依存）。IGF と生成カーブ、信頼度、境界、ダイナミクス |
+| Dynamics / Timing Gesture（§74-76） | 採用済み | CC11 と マイクロタイミング |
+| Cello を最初の楽器に（§9, §54） | 採用 | 転写の既定プロファイルは参照の楽器名から選ぶ。テストはチェロ中心 |
+| Gesture Database / Retrieval（§27-29, §68） | 部分採用 | IGF が DB の単位。`--mapping context` が単一参照内の Top-K 検索に相当。複数ファイル横断のライブラリは未対応 |
+| Statistical Instrument Model / Player Model（§30-33, §70） | 採用済み | プロファイル = 楽器 × スタイルの分布。`analyze` がユーザー録音から作る |
+| Constraint Engine（§73） | 一部採用 | 分布の min/max クランプ、遷移の音程比の上限と警告 |
+| AI Gesture Generation / Sequence Model（§34-36, §71-72） | 見送り | データが揃ってから。L1 として構想 §3.2 に記載済み |
+| DAW / Logic 統合、自然言語操作、AI Assistant（§38-40, §80-81） | 見送り | 仕様書自身が MVP の対象外としている。現状は仮想 MIDI ポートと MIDI ファイル往復で全 DAW に対応 |
+| Plugin 化（AU / VST3 / ARA）（§82-83） | 見送り | Core Engine を UI から独立させる方針は現状の構成（`pitchtrace` パッケージ + CLI）で満たしている |
+| Audio Gesture Transfer / Melodyne 型編集（§41-44） | 見送り | 本構想 §4.2 の通り、MIDI 版の価値検証後 |
+| Controlled / Musical Dataset の 2 種収録（§49-52） | 方針として採用 | フェーズ 0 の収録メニューに反映する |
+| Apple Silicon 最適化・ローカル推論（§86） | 方針として採用 | 現状は numpy のみでローカル完結。外部送信なし |
+
+## 11. 次のアクション
+
+1. Mac mini M4 でテスト運用（`pitch-trace/docs/MAC_SETUP.md`）
+2. チェロ（またはバイオリン）のソロ録音を 1 本用意し、`pitchtrace transfer` で別フレーズへ転写して
+   静止ピッチ / ランダム・ヒューマナイズ / 転写 のブラインド比較を行う（Go / No-Go 地点）
+3. 収録メニュー（Controlled: ロングトーン・スケール・跳躍・レガート / Musical: 実曲フレーズ）のドラフト
+4. 出力先の音源を決める（SWAM 系を第一候補）

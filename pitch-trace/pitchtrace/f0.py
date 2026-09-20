@@ -18,6 +18,9 @@ class F0Track:
     confidence: np.ndarray   # 0..1（1 - CMNDF 最小値）
     hop_s: float
     rms: np.ndarray | None = None  # フレームごとの RMS（ダイナミクス解析用）
+    raw_f0_hz: np.ndarray | None = None  # 補正（オクターブ修正等）前の F0。捨てない
+    detector: str = "yin"
+    tuning_hz: float = 440.0       # 推定した基準ピッチ（analyze が埋める）
 
     @property
     def voiced(self) -> np.ndarray:
@@ -106,4 +109,42 @@ def yin_f0(
             conf[b0 + i] = max(0.0, 1.0 - row[tau])
 
     times = (np.arange(n_frames) * hop + W / 2) / sr
-    return F0Track(times=times, f0_hz=f0, confidence=conf, hop_s=hop / sr, rms=rms_all)
+    return F0Track(times=times, f0_hz=f0, confidence=conf, hop_s=hop / sr, rms=rms_all, raw_f0_hz=f0.copy(), detector="yin")
+
+
+def frame_rms(x: np.ndarray, sr: int, times: np.ndarray, window_s: float = 0.023) -> np.ndarray:
+    """times（秒）を中心とする窓の RMS。外部検出器の出力に RMS を付けるため。"""
+    W = max(int(sr * window_s), 16)
+    out = np.zeros(len(times))
+    for i, t in enumerate(times):
+        c = int(t * sr)
+        seg = x[max(c - W // 2, 0): c + W // 2]
+        out[i] = float(np.sqrt(np.mean(seg ** 2))) if len(seg) else 0.0
+    return out
+
+
+def pyin_f0(x: np.ndarray, sr: int, hop_s: float = 0.005, fmin: float = 80.0, fmax: float = 1500.0, **_) -> F0Track:
+    """librosa.pyin による F0（任意依存）。voiced 確率を confidence にする。"""
+    try:
+        import librosa  # type: ignore
+    except ImportError as e:  # pragma: no cover
+        raise RuntimeError("pyin には librosa が必要です: pip install librosa") from e
+    hop = max(int(round(sr * hop_s)), 1)
+    frame = 1 << int(np.ceil(np.log2(max(4 * sr / fmin, 1024))))
+    f0, voiced, prob = librosa.pyin(x.astype(np.float32), fmin=fmin, fmax=fmax, sr=sr, frame_length=frame, hop_length=hop, center=True)
+    f0 = np.asarray(f0, dtype=float)
+    f0[~np.asarray(voiced, dtype=bool)] = np.nan
+    times = np.arange(len(f0)) * hop / sr
+    tr = F0Track(times=times, f0_hz=f0, confidence=np.nan_to_num(np.asarray(prob, dtype=float)), hop_s=hop / sr,
+                 rms=frame_rms(x, sr, times), raw_f0_hz=f0.copy(), detector="pyin")
+    return tr
+
+
+DETECTORS = {"yin": yin_f0, "pyin": pyin_f0}
+
+
+def detect_f0(x: np.ndarray, sr: int, detector: str = "yin", **kw) -> F0Track:
+    """検出器名で F0 抽出を呼ぶ。検出器は交換可能（インターフェースは F0Track）。"""
+    if detector not in DETECTORS:
+        raise ValueError(f"未知の検出器 {detector!r}。候補: {sorted(DETECTORS)}")
+    return DETECTORS[detector](x, sr, **kw)

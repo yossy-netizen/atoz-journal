@@ -133,3 +133,48 @@ def test_analyze_recovers_degree_bias():
     tbl = prof.intonation.major_bias_cents
     assert tbl[11] > tbl[0] + 4      # 導音は主音より明確に高い
     assert abs(tbl[11] - p.intonation.major_bias_cents[11]) < 5
+
+
+def test_tuning_estimate_separates_442_from_intonation():
+    """A=442 相当（+7.85 セント）で合成した録音から基準ピッチを推定し、イントネーションを 0 付近に戻す。"""
+    p = load_profile("cello_classical")
+    p.intonation.cents.mean, p.intonation.cents.std = 7.85, 1.0
+    p.intonation.key_bias_amount = 0.0
+    p.vibrato.prob = 0.0
+    p.attack.prob = 0.0
+    p.transition.prob = 0.0
+    p.release.prob = 0.0
+    p.drift.cents.mean = p.drift.cents.std = 0.0
+    notes = [Note(48 + i, i * 0.6, 0.5) for i in range(8)]
+    c = generate_contour(notes, p, seed=0, key=None)
+    an, tr = analyze_audio(synthesize(c), SR)
+    assert abs(tr.tuning_hz - 442.0) < 1.0
+    prof = build_profile(an, base=p, name="t", tuning_hz=tr.tuning_hz)
+    assert abs(prof.intonation.cents.mean) < 3.0
+    assert prof.stats["reference_tuning_hz"] == round(tr.tuning_hz, 2)
+    an2, tr2 = analyze_audio(synthesize(c), SR, tuning=440.0)
+    assert tr2.tuning_hz == 440.0
+    assert np.median([a.params["intonation_cents"] for a in an2]) > 5.0
+
+
+def test_octave_error_fix():
+    from pitchtrace.analyze import fix_octave_errors
+    p = load_profile("oboe_classical")
+    c = generate_contour([Note(64, 0.0, 1.0)], p, seed=0, amount=0.0)
+    tr = yin_f0(synthesize(c), SR)
+    raw = tr.f0_hz.copy()
+    tr.f0_hz[60:66] *= 2.0
+    tr.f0_hz[90:93] *= 0.5
+    n = fix_octave_errors(tr)
+    assert n == 9
+    good = ~np.isnan(raw)
+    assert np.allclose(tr.f0_hz[good], raw[good], rtol=1e-6)
+    assert tr.raw_f0_hz is not None
+
+
+def test_random_humanize_profile_ignores_context():
+    p = load_profile("random_humanize")
+    c = generate_contour([Note(60, 0.0, 0.5), Note(62, 0.5, 0.5)], p, seed=0)
+    assert not c.notes[1].params.get("portamento")
+    assert "attack_cents" not in c.notes[1].params
+    assert all(nc.params["intonation_key_bias"] == 0.0 for nc in c.notes)

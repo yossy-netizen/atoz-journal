@@ -6,6 +6,9 @@
   pitchtrace analyze in.wav -o prof.json    ソロ録音からプロファイルを作る
   pitchtrace demo    out_dir [opts]         静止ピッチ / トレース済みの A/B 用 WAV と MIDI を作る
   pitchtrace dump    in.mid out.csv [opts]  生成したカーブを CSV で書き出す（可視化用）
+  pitchtrace transfer ref.(wav|igf.json) target.mid out.mid [opts]
+                                            参照演奏のジェスチャーを別の MIDI へ転写（Reference Performance Transfer）
+  pitchtrace plot    out.png [--igf X] [--midi Y --profile P]  可視化（要 matplotlib）
   pitchtrace ports                          MIDI ポート一覧
   pitchtrace live    [--in NAME] [--out NAME] [opts]
                                             DAW からリアルタイムに受けてピッチベンド付きで返す
@@ -22,12 +25,13 @@ import mido
 import numpy as np
 
 from .analyze import analyze_audio, build_profile
-from .generate import generate_contour
+from .generate import COMPONENTS, generate_contour
 from .key import key_name, parse_key
 from .notes import Note, TempoMap, describe_midi, load_midi_notes, make_monophonic
 from .profile import list_builtin_profiles, load_profile
 from .render_midi import render_midi
 from .synth import read_wav, synthesize, write_wav
+from .igf import build_igf, load_igf, save_igf
 
 
 def _add_render_opts(ap: argparse.ArgumentParser) -> None:
@@ -42,6 +46,8 @@ def _add_render_opts(ap: argparse.ArgumentParser) -> None:
     ap.add_argument("--vibrato-lane", choices=["bend", "cc"], default=None, help="ビブラートの出力先を上書き")
     ap.add_argument("--key", default=None, help="調を指定（例 C, F#, Bb, Am）。省略時は render では自動判定、live では度数バイアスなし")
     ap.add_argument("--no-key-bias", action="store_true", help="調に対する度数バイアスを付けない")
+    for comp in COMPONENTS:
+        ap.add_argument(f"--amount-{comp}", type=float, default=None, help=f"{comp} 成分の量（1.0 = プロファイル通り、>1 で誇張）")
     ap.add_argument("--no-dynamics", action="store_true", help="ダイナミクス CC を出さない")
     ap.add_argument("--no-timing", action="store_true", help="マイクロタイミングを適用しない")
     ap.add_argument("--dyn-cc", type=int, default=None, help="ダイナミクスの CC 番号を上書き（既定 11）")
@@ -55,6 +61,10 @@ def _tempo_map(args, mf: mido.MidiFile | None) -> TempoMap:
     if mf is not None:
         return TempoMap.from_midifile(mf)
     return TempoMap.constant(960, 120.0)
+
+
+def _amounts(args) -> dict[str, float]:
+    return {c: getattr(args, f"amount_{c}") for c in COMPONENTS if getattr(args, f"amount_{c}", None) is not None}
 
 
 def _key_arg(args, default="auto"):
@@ -74,7 +84,7 @@ def _prepare(args, notes: list[Note]):
     if args.mode == "single":
         notes = make_monophonic(notes, overlap_s=args.legato_overlap_ms / 1000.0)
     contour = generate_contour(notes, profile, seed=args.seed, amount=args.amount, lookahead=not args.no_lookahead,
-                               key=_key_arg(args))
+                               key=_key_arg(args), amounts=_amounts(args))
     return profile, contour
 
 
@@ -135,17 +145,27 @@ def cmd_dump(args) -> int:
 
 def cmd_analyze(args) -> int:
     x, sr = read_wav(args.input)
-    notes, track = analyze_audio(x, sr, hop_s=args.hop_ms / 1000.0, fmin=args.fmin, fmax=args.fmax)
+    notes, track = analyze_audio(x, sr, hop_s=args.hop_ms / 1000.0, fmin=args.fmin, fmax=args.fmax,
+                                 detector=args.detector, tuning=args.tuning, octave_fix=not args.no_octave_fix)
     if not notes:
         print("音符を検出できませんでした（無音・ノイズ・多声の可能性）", file=sys.stderr)
         return 1
     base = load_profile(args.base) if args.base else None
     name = args.name or Path(args.input).stem
-    profile = build_profile(notes, base=base, name=name, instrument=args.instrument or (base.instrument if base else "unknown"),
-                            style=args.style or (base.style if base else "unknown"), hop_s=track.hop_s)
-    profile.save(args.output)
-    print(f"{len(notes)} 音符を解析 → {args.output}")
-    print(json.dumps(profile.stats, ensure_ascii=False))
+    instrument = args.instrument or (base.instrument if base else "unknown")
+    style = args.style or (base.style if base else "unknown")
+    if args.output:
+        profile = build_profile(notes, base=base, name=name, instrument=instrument, style=style, hop_s=track.hop_s, tuning_hz=track.tuning_hz)
+        profile.save(args.output)
+        print(f"{len(notes)} 音符を解析 → {args.output}")
+        print(json.dumps(profile.stats, ensure_ascii=False))
+    if args.igf:
+        igf = build_igf(notes, track, source=args.input, instrument=instrument, style=style, sample_rate=sr)
+        save_igf(igf, args.igf)
+        print(f"IGF（{len(igf['notes'])} 音符, tuning A={igf['source']['reference_tuning_hz']} Hz, detector {track.detector}）→ {args.igf}")
+    if not args.output and not args.igf:
+        print("出力先がありません: -o profile.json か --igf ref.igf.json を指定してください", file=sys.stderr)
+        return 1
     if args.notes_json:
         rows = [{"pitch": n.pitch, "onset": round(n.onset, 4), "offset": round(n.offset, 4), **n.params} for n in notes]
         Path(args.notes_json).write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -169,6 +189,67 @@ def demo_notes() -> list[Note]:
     return notes
 
 
+def _load_reference(path: str, args) -> dict:
+    if path.endswith(".json"):
+        return load_igf(path)
+    x, sr = read_wav(path)
+    notes, track = analyze_audio(x, sr, detector=getattr(args, "detector", "yin"), tuning=getattr(args, "tuning", None))
+    if not notes:
+        raise SystemExit("参照音声から音符を検出できませんでした")
+    igf = build_igf(notes, track, source=path, instrument=getattr(args, "instrument", None) or "unknown", sample_rate=sr)
+    if getattr(args, "save_igf", None):
+        save_igf(igf, args.save_igf)
+        print(f"参照の IGF → {args.save_igf}")
+    return igf
+
+
+def cmd_transfer(args) -> int:
+    from .transfer import transfer
+    ref = _load_reference(args.reference, args)
+    notes, mf = load_midi_notes(args.target, track=args.track, channel=args.channel)
+    if not notes:
+        print("ターゲット MIDI に音符がありません", file=sys.stderr)
+        return 1
+    profile = load_profile(args.profile) if args.profile else load_profile({"cello": "cello_classical", "violin": "violin_classical",
+                                                                              "oboe": "oboe_classical", "alto_sax": "alto_sax_classical"}.get(ref.get("instrument"), "cello_classical"))
+    if args.vibrato_lane:
+        profile.output.vibrato_lane = args.vibrato_lane
+    if args.dyn_cc is not None:
+        profile.dynamics.cc_number = args.dyn_cc
+    if args.mode == "single":
+        notes = make_monophonic(notes, overlap_s=args.legato_overlap_ms / 1000.0)
+    manual = None
+    if args.map:
+        manual = json.loads(Path(args.map).read_text(encoding="utf-8")) if Path(args.map).exists() else [
+            None if x.strip() in ("", "-") else int(x) for x in args.map.split(",")]
+    contour, rep = transfer(ref, notes, profile, mode=args.adapt, mapping=args.mapping, manual_map=manual, seed=args.seed,
+                            amount=args.amount, amounts=_amounts(args), key=_key_arg(args), top_k=args.top_k)
+    keep = args.track is not None and not args.only_track
+    render_midi(contour, profile, args.output, mode=args.mode, bend_range=args.bend_range,
+                legato_overlap_s=args.legato_overlap_ms / 1000.0, max_events_per_s=args.max_events_per_s,
+                tempo_map=_tempo_map(args, mf), dynamics=not args.no_dynamics, timing=not args.no_timing,
+                base_file=mf if keep else None, replace_track=args.track if keep else None)
+    for w in rep.warnings:
+        print("注意:", w)
+    print(f"転写 {rep.n_ref} 音 → {rep.n_target} 音 ({rep.mode}, {args.mapping}) → {args.output}  mapping {rep.mapping}")
+    if args.wav:
+        write_wav(args.wav, synthesize(contour))
+        print(f"試聴用 WAV → {args.wav}")
+    return 0
+
+
+def cmd_plot(args) -> int:
+    from .plot import save_plot
+    igf = load_igf(args.igf) if args.igf else None
+    contour = None
+    if args.midi:
+        notes, _ = load_midi_notes(args.midi, track=args.track, channel=args.channel)
+        _, contour = _prepare(args, notes)
+    save_plot(args.output, igf=igf, contour=contour, t_range=(args.t0, args.t1) if args.t1 else None)
+    print(f"→ {args.output}")
+    return 0
+
+
 def cmd_demo(args) -> int:
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -189,6 +270,20 @@ def cmd_demo(args) -> int:
     write_wav(out / f"demo_{tag}.wav", synthesize(contour))
     write_wav(out / "demo_static.wav", synthesize(flat))
     print(f"→ {out}/demo_static.(wav|mid) と {out}/demo_{tag}.(wav|mid)  を聴き比べてください")
+    if args.blind:
+        # A = 静止ピッチ / B = ランダム・ヒューマナイズ / C = ジェスチャーモデル を X/Y/Z にシャッフル
+        import random
+        rnd_args = argparse.Namespace(**{**vars(args), "profile": "random_humanize", "amount": 1.0})
+        rnd_profile, rnd = _prepare(rnd_args, notes)
+        variants = {"static": flat, "random_humanize": rnd, tag: contour}
+        labels = ["X", "Y", "Z"]
+        random.Random(args.seed).shuffle(labels)
+        answer = {}
+        for lab, (name, c) in zip(labels, variants.items()):
+            write_wav(out / f"blind_{lab}.wav", synthesize(c))
+            answer[lab] = name
+        (out / "blind_answer.json").write_text(json.dumps(answer, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"ブラインド比較: {out}/blind_X.wav, blind_Y.wav, blind_Z.wav（答えは blind_answer.json。聴き終わるまで開かない）")
     return 0
 
 
@@ -251,7 +346,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     a = sub.add_parser("analyze", help="ソロ録音からプロファイルを作る")
     a.add_argument("input", help="WAV（モノラル推奨・単旋律・無伴奏）")
-    a.add_argument("-o", "--output", required=True, help="出力プロファイル JSON")
+    a.add_argument("-o", "--output", default=None, help="出力プロファイル JSON（統計）")
+    a.add_argument("--igf", default=None, help="IGF（音符ごとのジェスチャー + 生カーブ）を書き出す")
+    a.add_argument("--detector", choices=["yin", "pyin"], default="yin", help="F0 検出器（pyin は librosa が必要）")
+    a.add_argument("--tuning", type=float, default=None, help="基準ピッチ A4 (Hz)。省略時は録音から推定")
+    a.add_argument("--no-octave-fix", action="store_true", help="オクターブ誤検出の補正を行わない")
     a.add_argument("--base", default=None, help="推定できない項目の既定値に使う組み込みプロファイル")
     a.add_argument("--name", default=None); a.add_argument("--instrument", default=None); a.add_argument("--style", default=None)
     a.add_argument("--hop-ms", type=float, default=5.0)
@@ -272,7 +371,32 @@ def build_parser() -> argparse.ArgumentParser:
 
     m = sub.add_parser("demo", help="A/B 用の WAV と MIDI を作る")
     m.add_argument("out_dir"); m.add_argument("--input", default=None, help="MIDI（省略時は内蔵フレーズ）")
+    m.add_argument("--blind", action="store_true", help="静止 / ランダム・ヒューマナイズ / ジェスチャーの 3 種をシャッフルした X/Y/Z も出す")
     _add_render_opts(m); m.set_defaults(func=cmd_demo)
+
+    tf = sub.add_parser("transfer", help="参照演奏のジェスチャーを別の MIDI へ転写")
+    tf.add_argument("reference", help="参照演奏（WAV）または解析済み IGF（.json）")
+    tf.add_argument("target", help="ターゲット MIDI")
+    tf.add_argument("output", help="出力 MIDI")
+    tf.add_argument("--adapt", choices=["param", "raw"], default="param", help="適応方式（param: 意味パラメータで再生成 / raw: 生カーブを時間適応）")
+    tf.add_argument("--mapping", choices=["positional", "context"], default="positional", help="対応付け（位置 / 文脈の近さ）")
+    tf.add_argument("--map", default=None, help="手動対応: '0,1,3,-' のような参照 index 列（- は通常生成）、または JSON ファイル")
+    tf.add_argument("--top-k", type=int, default=3, help="context 対応で候補に残す上位数")
+    tf.add_argument("--track", type=int, default=None); tf.add_argument("--channel", type=int, default=None)
+    tf.add_argument("--only-track", action="store_true")
+    tf.add_argument("--instrument", default=None, help="参照の楽器名（WAV 入力時の IGF 用）")
+    tf.add_argument("--detector", choices=["yin", "pyin"], default="yin"); tf.add_argument("--tuning", type=float, default=None)
+    tf.add_argument("--save-igf", default=None, help="参照を解析した IGF を保存")
+    tf.add_argument("--wav", default=None, help="試聴用 WAV も書く（簡易シンセ）")
+    _add_render_opts(tf); tf.set_defaults(func=cmd_transfer, profile=None)
+
+    pl = sub.add_parser("plot", help="可視化 PNG（要 matplotlib）")
+    pl.add_argument("output", help="出力 PNG")
+    pl.add_argument("--igf", default=None, help="解析結果（IGF）")
+    pl.add_argument("--midi", default=None, help="MIDI からカーブを生成して描く")
+    pl.add_argument("--track", type=int, default=None); pl.add_argument("--channel", type=int, default=None)
+    pl.add_argument("--t0", type=float, default=0.0); pl.add_argument("--t1", type=float, default=None)
+    _add_render_opts(pl); pl.set_defaults(func=cmd_plot)
     return ap
 
 

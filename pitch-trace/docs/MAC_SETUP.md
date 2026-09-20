@@ -46,6 +46,20 @@ bash scripts/setup_mac.sh --live
    CC1 で受ける音源なら `--dyn-cc 1`。不要なら `--no-dynamics`。
    音の前後ずれ（マイクロタイミング）が不要なら `--no-timing`
 
+### A2. 参照演奏の転写（Reference Performance Transfer）
+
+手元にチェロ（やバイオリン）のソロ録音があれば、その奏者のジェスチャーを打ち込みへ転写できる。
+
+```bash
+pitchtrace analyze cello_ref.wav --igf cello_ref.igf.json --instrument cello   # 解析（1 回だけ）
+pitchtrace plot check.png --igf cello_ref.igf.json                              # 解析結果を目で確認
+pitchtrace transfer cello_ref.igf.json melody.mid melody_traced.mid --mapping context --wav preview.wav
+pitchtrace transfer cello_ref.igf.json melody.mid melody_raw.mid --adapt raw    # 生カーブをそのまま使う版
+```
+
+録音は無伴奏・単旋律・モノラル推奨。`--tuning 442` で基準ピッチを固定できる（省略時は推定）。
+評価は `pitchtrace demo out --profile cello_classical --blind` の X/Y/Z を聴いてから答えを見る。
+
 ### B. リアルタイム: DAW → PitchTrace → DAW（仮想 MIDI ポート）
 
 演奏やピアノロールの再生に対して、その場でピッチベンドを付ける。
