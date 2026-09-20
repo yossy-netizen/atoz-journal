@@ -1,0 +1,177 @@
+"""コマンドライン:
+
+  pitchtrace profiles                       組み込みプロファイル一覧
+  pitchtrace render  in.mid out.mid [opts]  MIDI に表情（ピッチベンド等）を付ける
+  pitchtrace analyze in.wav -o prof.json    ソロ録音からプロファイルを作る
+  pitchtrace demo    out_dir [opts]         静止ピッチ / トレース済みの A/B 用 WAV と MIDI を作る
+  pitchtrace dump    in.mid out.csv [opts]  生成したカーブを CSV で書き出す（可視化用）
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+
+from .analyze import analyze_audio, build_profile
+from .generate import generate_contour
+from .notes import Note, load_midi_notes, make_monophonic
+from .profile import list_builtin_profiles, load_profile
+from .render_midi import render_midi
+from .synth import read_wav, synthesize, write_wav
+
+
+def _add_render_opts(ap: argparse.ArgumentParser) -> None:
+    ap.add_argument("--profile", "-p", default="violin_classical", help="組み込み名または JSON パス")
+    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--amount", type=float, default=1.0, help="全体量（0 = 静止ピッチ）")
+    ap.add_argument("--mode", choices=["single", "mpe"], default="single")
+    ap.add_argument("--bend-range", type=int, default=12, help="ベンドレンジ（半音）。音源側と揃える")
+    ap.add_argument("--legato-overlap-ms", type=float, default=0.0, help="single モードで残す重なり")
+    ap.add_argument("--no-lookahead", action="store_true", help="次の音を見ない（リアルタイム動作の模擬）")
+    ap.add_argument("--max-events-per-s", type=float, default=None, help="ベンド/CC の最大密度")
+    ap.add_argument("--vibrato-lane", choices=["bend", "cc"], default=None, help="ビブラートの出力先を上書き")
+    ap.add_argument("--tempo", type=float, default=120.0, help="出力 MIDI のテンポ（秒→tick 変換用）")
+
+
+def _prepare(args, notes: list[Note]):
+    profile = load_profile(args.profile)
+    if args.vibrato_lane:
+        profile.output.vibrato_lane = args.vibrato_lane
+    if args.mode == "single":
+        notes = make_monophonic(notes, overlap_s=args.legato_overlap_ms / 1000.0)
+    contour = generate_contour(notes, profile, seed=args.seed, amount=args.amount, lookahead=not args.no_lookahead)
+    return profile, contour
+
+
+def cmd_profiles(args) -> int:
+    for name in list_builtin_profiles():
+        p = load_profile(name)
+        print(f"{name:22s} {p.instrument:10s} {p.style:10s} v{p.version}  {p.source}")
+    return 0
+
+
+def cmd_render(args) -> int:
+    notes, _ = load_midi_notes(args.input, track=args.track, channel=args.channel)
+    if not notes:
+        print("音符が見つかりません", file=sys.stderr)
+        return 1
+    profile, contour = _prepare(args, notes)
+    render_midi(contour, profile, args.output, mode=args.mode, bend_range=args.bend_range,
+                legato_overlap_s=args.legato_overlap_ms / 1000.0, max_events_per_s=args.max_events_per_s, tempo_bpm=args.tempo)
+    n_vib = sum(1 for nc in contour.notes if "vibrato_rate_hz" in nc.params)
+    n_port = sum(1 for nc in contour.notes if nc.params.get("portamento"))
+    print(f"{len(notes)} 音符 → {args.output}  (profile={profile.name}, mode={args.mode}, vibrato {n_vib}, portamento {n_port})")
+    return 0
+
+
+def cmd_dump(args) -> int:
+    notes, _ = load_midi_notes(args.input, track=args.track, channel=args.channel)
+    profile, contour = _prepare(args, notes)
+    with open(args.output, "w", encoding="utf-8") as f:
+        f.write("time_s,note,cents,intonation,transition,attack,vibrato,drift,release,jitter\n")
+        for nc in contour.notes:
+            for k, ti in enumerate(nc.t):
+                parts = ",".join(f"{nc.parts[p][k]:.2f}" for p in ("intonation", "transition", "attack", "vibrato", "drift", "release", "jitter"))
+                f.write(f"{nc.note.onset + ti:.4f},{nc.note.pitch},{nc.cents[k]:.2f},{parts}\n")
+    print(f"→ {args.output}")
+    return 0
+
+
+def cmd_analyze(args) -> int:
+    x, sr = read_wav(args.input)
+    notes, track = analyze_audio(x, sr, hop_s=args.hop_ms / 1000.0, fmin=args.fmin, fmax=args.fmax)
+    if not notes:
+        print("音符を検出できませんでした（無音・ノイズ・多声の可能性）", file=sys.stderr)
+        return 1
+    base = load_profile(args.base) if args.base else None
+    name = args.name or Path(args.input).stem
+    profile = build_profile(notes, base=base, name=name, instrument=args.instrument or (base.instrument if base else "unknown"),
+                            style=args.style or (base.style if base else "unknown"), hop_s=track.hop_s)
+    profile.save(args.output)
+    print(f"{len(notes)} 音符を解析 → {args.output}")
+    print(json.dumps(profile.stats, ensure_ascii=False))
+    if args.notes_json:
+        rows = [{"pitch": n.pitch, "onset": round(n.onset, 4), "offset": round(n.offset, 4), **n.params} for n in notes]
+        Path(args.notes_json).write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"音符ごとの推定値 → {args.notes_json}")
+    return 0
+
+
+def demo_notes() -> list[Note]:
+    """デモ用の短いフレーズ（ハ長調、レガートと跳躍と長音を含む）。"""
+    seq = [(67, 0.5), (69, 0.5), (71, 1.0), (72, 0.5), (74, 1.5), (72, 0.25), (71, 0.25), (69, 0.5), (67, 2.0),
+           None, (64, 0.5), (65, 0.5), (67, 1.0), (72, 1.5), (71, 0.5), (69, 0.5), (67, 2.5)]
+    notes: list[Note] = []
+    t = 0.0
+    for item in seq:
+        if item is None:
+            t += 0.6
+            continue
+        pitch, dur = item
+        notes.append(Note(pitch=pitch, onset=t, duration=dur, velocity=96))
+        t += dur
+    return notes
+
+
+def cmd_demo(args) -> int:
+    out = Path(args.out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    if args.input:
+        notes, _ = load_midi_notes(args.input)
+    else:
+        notes = demo_notes()
+    profile, contour = _prepare(args, notes)
+    flat_args = argparse.Namespace(**{**vars(args), "amount": 0.0})
+    _, flat = _prepare(flat_args, notes)
+    tag = profile.name
+    render_midi(contour, profile, out / f"demo_{tag}.mid", mode=args.mode, bend_range=args.bend_range, tempo_bpm=args.tempo)
+    render_midi(flat, profile, out / "demo_static.mid", mode=args.mode, bend_range=args.bend_range, tempo_bpm=args.tempo)
+    write_wav(out / f"demo_{tag}.wav", synthesize(contour))
+    write_wav(out / "demo_static.wav", synthesize(flat))
+    print(f"→ {out}/demo_static.(wav|mid) と {out}/demo_{tag}.(wav|mid)  を聴き比べてください")
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    ap = argparse.ArgumentParser(prog="pitchtrace", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    sub.add_parser("profiles", help="組み込みプロファイル一覧").set_defaults(func=cmd_profiles)
+
+    r = sub.add_parser("render", help="MIDI に表情を付ける")
+    r.add_argument("input"); r.add_argument("output")
+    r.add_argument("--track", type=int, default=None); r.add_argument("--channel", type=int, default=None)
+    _add_render_opts(r); r.set_defaults(func=cmd_render)
+
+    d = sub.add_parser("dump", help="カーブを CSV に書き出す")
+    d.add_argument("input"); d.add_argument("output")
+    d.add_argument("--track", type=int, default=None); d.add_argument("--channel", type=int, default=None)
+    _add_render_opts(d); d.set_defaults(func=cmd_dump)
+
+    a = sub.add_parser("analyze", help="ソロ録音からプロファイルを作る")
+    a.add_argument("input", help="WAV（モノラル推奨・単旋律・無伴奏）")
+    a.add_argument("-o", "--output", required=True, help="出力プロファイル JSON")
+    a.add_argument("--base", default=None, help="推定できない項目の既定値に使う組み込みプロファイル")
+    a.add_argument("--name", default=None); a.add_argument("--instrument", default=None); a.add_argument("--style", default=None)
+    a.add_argument("--hop-ms", type=float, default=5.0)
+    a.add_argument("--fmin", type=float, default=80.0); a.add_argument("--fmax", type=float, default=1500.0)
+    a.add_argument("--notes-json", default=None, help="音符ごとの推定値も JSON で書き出す")
+    a.set_defaults(func=cmd_analyze)
+
+    m = sub.add_parser("demo", help="A/B 用の WAV と MIDI を作る")
+    m.add_argument("out_dir"); m.add_argument("--input", default=None, help="MIDI（省略時は内蔵フレーズ）")
+    _add_render_opts(m); m.set_defaults(func=cmd_demo)
+    return ap
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

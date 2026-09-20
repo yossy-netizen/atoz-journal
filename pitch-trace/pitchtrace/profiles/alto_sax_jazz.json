@@ -1,0 +1,124 @@
+{
+  "name": "alto_sax_jazz",
+  "instrument": "alto_sax",
+  "style": "jazz",
+  "version": 0,
+  "source": "hand-tuned v0（文献値と経験則による目安。フェーズ0の実測で更新する）",
+  "intonation": {
+    "cents": {
+      "mean": -4,
+      "std": 9,
+      "min": -35,
+      "max": 25
+    },
+    "continuity": 0.4
+  },
+  "transition": {
+    "prob": 0.6,
+    "max_gap_ms": 40,
+    "duration_ms": {
+      "mean": 35,
+      "std": 14,
+      "min": 8,
+      "max": 140
+    },
+    "duration_per_semitone_ms": 4,
+    "sharpness": {
+      "mean": 5,
+      "std": 2,
+      "min": 3,
+      "max": 12
+    },
+    "overshoot_cents": {
+      "mean": 6,
+      "std": 6,
+      "min": 0,
+      "max": 30
+    },
+    "overshoot_settle_ms": 60
+  },
+  "attack": {
+    "prob": 0.75,
+    "offset_cents": {
+      "mean": -45,
+      "std": 25,
+      "min": -150,
+      "max": 10
+    },
+    "settle_ms": {
+      "mean": 70,
+      "std": 30,
+      "min": 20,
+      "max": 220
+    }
+  },
+  "vibrato": {
+    "prob": 0.7,
+    "min_note_ms": 350,
+    "rate_hz": {
+      "mean": 5.0,
+      "std": 0.7,
+      "min": 3.5,
+      "max": 6.8
+    },
+    "depth_cents": {
+      "mean": 30,
+      "std": 10,
+      "min": 8,
+      "max": 70
+    },
+    "onset_ms": {
+      "mean": 280,
+      "std": 120,
+      "min": 40,
+      "max": 800
+    },
+    "ramp_ms": {
+      "mean": 300,
+      "std": 120,
+      "min": 60,
+      "max": 900
+    },
+    "center_offset": -0.7,
+    "rate_wobble": 0.1,
+    "depth_wobble": 0.25,
+    "asymmetry": -0.2,
+    "climax_gain": 1.4,
+    "full_depth_at_ms": 1500
+  },
+  "drift": {
+    "cents": {
+      "mean": 6,
+      "std": 3,
+      "min": 0,
+      "max": 18
+    },
+    "cutoff_hz": 0.7
+  },
+  "release": {
+    "prob": 0.7,
+    "cents": {
+      "mean": -40,
+      "std": 30,
+      "min": -250,
+      "max": 5
+    },
+    "duration_ms": {
+      "mean": 120,
+      "std": 50,
+      "min": 30,
+      "max": 400
+    },
+    "phrase_end_gain": 2.5
+  },
+  "jitter": {
+    "cents": 1.5,
+    "smooth_ms": 15
+  },
+  "output": {
+    "vibrato_lane": "bend",
+    "cc_number": 1,
+    "cc_full_depth_cents": 50
+  },
+  "hop_ms": 5.0
+}
