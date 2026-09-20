@@ -88,3 +88,12 @@ def test_generate_synth_analyze_recovers_profile():
     # 出力がそのまま render に使える
     c2 = generate_contour(notes[:5], prof, seed=1)
     assert len(c2.notes) == 5
+
+
+def test_build_profile_continuity_is_finite_when_one_side_is_constant():
+    from pitchtrace.analyze import AnalyzedNote
+    z = np.zeros(3)
+    notes = [AnalyzedNote(60, i, i + 0.5, z, z, {"intonation_cents": v, "jitter_cents": 1.0})
+             for i, v in enumerate([0.0, 0.0, 0.0, 5.0])]
+    prof = build_profile(notes)
+    assert np.isfinite(prof.intonation.continuity)

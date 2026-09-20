@@ -40,15 +40,18 @@ class NoteContour:
     parts: dict[str, np.ndarray]  # 成分ごとの内訳
     vib_env: np.ndarray           # ビブラート深さの包絡（セント）
     params: dict                  # サンプリングされたパラメータ（解析との突き合わせ用）
+    # 次の音のポルタメント開始点に使う終端偏差（intonation + drift + release。ビブラートは中心のみ）。
+    # amount を掛ける前の値。次の音の生成時に他の成分と一緒に amount が掛かる
+    end_track: np.ndarray = None  # type: ignore[assignment]
 
     @property
     def end_cents(self) -> float:
-        """次の音のポルタメント開始点に使う終端偏差（ビブラートは中心のみ引き継ぐ）。"""
-        return float(self.parts["intonation"][-1] + self.parts["drift"][-1] + self.parts["release"][-1])
+        """次の音のポルタメント開始点に使う終端偏差（amount 適用前）。"""
+        return float(self.end_track[-1])
 
     def end_cents_at(self, k: int) -> float:
         k = int(np.clip(k, 0, len(self.t) - 1))
-        return float(self.parts["intonation"][k] + self.parts["drift"][k] + self.parts["release"][k])
+        return float(self.end_track[k])
 
 
 @dataclass
@@ -139,12 +142,13 @@ def generate_note(
         interval = ctx.prev_pitch - n.pitch  # 前の音の位置（この音の基準でのセント / 100）
         start = interval * 100.0 + ctx.prev_end_cents
         dur2080 = (P.transition.duration_ms.sample(rng) + P.transition.duration_per_semitone_ms * abs(interval)) / 1000.0
-        k = P.transition.sharpness.sample(rng)
+        k = max(P.transition.sharpness.sample(rng), 0.5)  # 0 以下だとシグモイドが定義できない
         full = max(dur2080 / _sigmoid_2080_fraction(k), 2 * hop_s)  # 20→80% 時間 → 全体の長さ
         s = _sigmoid((t / full - 0.5) * k)
         s0, s1 = _sigmoid(-0.5 * k), _sigmoid(0.5 * k)
         s = np.clip((s - s0) / max(s1 - s0, 1e-9), 0, 1)
-        trans = start * (1.0 - s)
+        # 合計は intonation + trans なので、開始点が前の音の終端（start）に一致するよう into を差し引く
+        trans = (start - into) * (1.0 - s)
         over = P.transition.overshoot_cents.sample(rng) * (-1.0 if interval > 0 else 1.0 if interval < 0 else 0.0)
         if over != 0.0:
             settle = P.transition.overshoot_settle_ms / 1000.0
@@ -215,9 +219,10 @@ def generate_note(
     jit = _moving_average(jit, max(int(J.smooth_ms / 1000.0 / hop_s), 1))
     parts["jitter"] = jit
 
+    end_track = parts["intonation"] + parts["drift"] + parts["release"]
     parts = {k: v * amount for k, v in parts.items()}
     cents = sum(parts.values())
-    return NoteContour(note=n, t=t, cents=cents, parts=parts, vib_env=vib_env * amount, params=params)
+    return NoteContour(note=n, t=t, cents=cents, parts=parts, vib_env=vib_env * amount, params=params, end_track=end_track)
 
 
 def generate_contour(

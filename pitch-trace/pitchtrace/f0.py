@@ -40,6 +40,8 @@ def yin_f0(
     rms_gate: float = 0.005,
     batch: int = 256,
 ) -> F0Track:
+    if fmax <= fmin:
+        raise ValueError(f"fmax ({fmax}) は fmin ({fmin}) より大きい必要があります")
     x = np.asarray(x, dtype=np.float64)
     hop = max(int(round(sr * hop_s)), 1)
     W = max(int(sr * window_s), 64)

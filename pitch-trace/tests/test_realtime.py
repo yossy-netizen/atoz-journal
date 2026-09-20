@@ -111,3 +111,38 @@ def test_note_on_cost_is_small():
         tr.handle(off(60 + i % 12), i * 0.1 + 0.05)
     per = (time.perf_counter() - t0) / 20
     assert per < 0.02  # 1 音あたり 20 ms 未満（30 秒分のカーブ生成込み）
+
+
+def test_mpe_overlapping_legato_glides_from_sounding_note():
+    tr, out = make(mode="mpe", overrides={"transition.prob": 1.0, "attack.prob": 0.0, "jitter.cents": 0.0})
+    tr.handle(on(60), 0.0)
+    tr.tick(0.5)
+    n = len(out)
+    tr.handle(on(67), 0.5)   # 60 が鳴ったまま → 重なりレガート
+    first_bend = next(m for m in out[n:] if m.type == "pitchwheel")
+    assert first_bend.pitch < -3000
+    assert tr.stats["portamento"] == 1
+
+
+def test_pending_note_off_is_flushed_before_same_pitch_note_on():
+    tr, out = make(legato_overlap_s=0.05)
+    tr.handle(on(60), 0.0)
+    tr.handle(on(62), 1.0)          # 60 の note_off は 1.05 まで保留
+    n = len(out)
+    tr.handle(on(60), 1.02)         # 保留中の 60 が来た
+    tr.tick(1.06)
+    seq = [(m.type, m.note) for m in out[n:] if m.type in ("note_on", "note_off")]
+    assert seq.index(("note_off", 60)) < seq.index(("note_on", 60))
+    assert seq.count(("note_off", 60)) == 1   # 保留分が後から来て新しい音を消さない
+    assert 60 in tr.active
+
+
+def test_all_notes_off_resets_bend_with_pending_off():
+    tr, out = make(legato_overlap_s=0.05)
+    tr.handle(on(60), 0.0)
+    tr.handle(on(62), 1.0)
+    tr.handle(off(62), 1.01)
+    n = len(out)
+    tr.all_notes_off(1.02)
+    assert out[-1].type == "pitchwheel" and out[-1].pitch == 0
+    assert tr._pending_off == [] and tr.active == {}

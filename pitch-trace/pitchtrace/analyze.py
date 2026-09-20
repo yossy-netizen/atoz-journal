@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from .f0 import F0Track, yin_f0
+from .generate import _moving_average
 from .profile import Dist, Profile
 
 
@@ -42,14 +43,6 @@ def _median_filter(x: np.ndarray, win: int) -> np.ndarray:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
         return np.nanmedian(xp[idx], axis=1)
-
-
-def _moving_average(x: np.ndarray, win: int) -> np.ndarray:
-    if win <= 1 or len(x) == 0:
-        return x
-    k = np.ones(win) / win
-    pad = win // 2
-    return np.convolve(np.pad(x, (pad, win - 1 - pad), mode="edge"), k, mode="valid")
 
 
 def _fill_nan(x: np.ndarray) -> np.ndarray:
@@ -349,8 +342,11 @@ def build_profile(notes: list[AnalyzedNote], base: Profile | None = None, name: 
     P.intonation.cents = _dist([p.get("intonation_cents") for p in ps], P.intonation.cents)
     if len(ps) > 2:
         ints = np.array([p.get("intonation_cents", 0.0) for p in ps])
-        if ints.std() > 1e-6:
-            P.intonation.continuity = float(np.clip(np.corrcoef(ints[:-1], ints[1:])[0, 1], 0, 1))
+        # どちらかの側が定数だと相関が NaN になる（生成側に NaN が伝播する）ので両側を確認する
+        if ints[:-1].std() > 1e-6 and ints[1:].std() > 1e-6:
+            r = float(np.corrcoef(ints[:-1], ints[1:])[0, 1])
+            if np.isfinite(r):
+                P.intonation.continuity = float(np.clip(r, 0, 1))
 
     leg = [p for p in ps if p.get("legato")]
     port = [p for p in leg if p.get("transition_portamento")]

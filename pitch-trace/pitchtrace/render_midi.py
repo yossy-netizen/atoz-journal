@@ -84,20 +84,23 @@ def render_midi(
         return int(round(mido.second2tick(s, ticks_per_beat, tempo)))
 
     events: list[tuple[int, int, mido.Message]] = []  # (tick, priority, msg)
-    # priority: 0 = 設定/ベンド（ノートオンより前に出す）, 1 = note_off, 2 = note_on
+    # 同 tick での並び順:
+    #   0 = note_off, 1 = ベンドのリセット（前の音の後始末）, 2 = 設定/ベンド/CC, 3 = note_on
+    # 次の音のベンドは、前の音のリセットより後・ノートオンより前に出す
+    PRI_OFF, PRI_RESET, PRI_BEND, PRI_ON = 0, 1, 2, 3
 
     if mode == "single":
         member_channels = [channel]
         for m in _rpn_bend_range(channel, bend_range):
-            events.append((0, 0, m))
+            events.append((0, PRI_BEND, m))
     else:
         master = 0
         member_channels = list(range(1, 16))
         for m in _mpe_config(master, len(member_channels)):
-            events.append((0, 0, m))
+            events.append((0, PRI_BEND, m))
         for ch in member_channels:
             for m in _rpn_bend_range(ch, bend_range):
-                events.append((0, 0, m))
+                events.append((0, PRI_BEND, m))
 
     use_cc = profile.output.vibrato_lane == "cc"
     cc_num = profile.output.cc_number
@@ -110,10 +113,12 @@ def render_midi(
         ch = member_channels[i % len(member_channels)]
         onset = n.onset
         end = n.offset
-        if mode == "single" and i + 1 < len(notes):
-            nxt = notes[i + 1].note
-            if end > nxt.onset + legato_overlap_s:
-                end = max(nxt.onset + legato_overlap_s, onset + 0.01)
+        nxt = notes[i + 1].note if i + 1 < len(notes) else None
+        if mode == "single" and nxt is not None:
+            # 同音の連打は重ねられない（前の note_off が次の音を消してしまう）
+            overlap = 0.0 if nxt.pitch == n.pitch else legato_overlap_s
+            if end > nxt.onset + overlap:
+                end = max(nxt.onset + overlap, onset + 0.01)
 
         cents = nc.cents - (nc.parts["vibrato"] if use_cc else 0.0)
         bend = cents_to_bend(cents, bend_range)
@@ -128,7 +133,7 @@ def render_midi(
                 continue
             if k > 0 and (t_abs - last_t) < min_dt:
                 continue
-            events.append((sec2tick(t_abs), 0, mido.Message("pitchwheel", channel=ch, pitch=int(val))))
+            events.append((sec2tick(t_abs), PRI_BEND, mido.Message("pitchwheel", channel=ch, pitch=int(val))))
             last_val, last_t = int(val), t_abs
         if use_cc:
             last_cc = None
@@ -140,12 +145,14 @@ def render_midi(
                 cc = int(np.clip(round(dep / cc_full * 127), 0, 127))
                 if cc == last_cc or (k > 0 and (t_abs - last_t) < min_dt):
                     continue
-                events.append((sec2tick(t_abs), 0, mido.Message("control_change", channel=ch, control=cc_num, value=cc)))
+                events.append((sec2tick(t_abs), PRI_BEND, mido.Message("control_change", channel=ch, control=cc_num, value=cc)))
                 last_cc, last_t = cc, t_abs
-        events.append((sec2tick(onset), 2, mido.Message("note_on", channel=ch, note=n.pitch, velocity=int(np.clip(n.velocity, 1, 127)))))
-        events.append((sec2tick(end), 1, mido.Message("note_off", channel=ch, note=n.pitch, velocity=0)))
-        # ノート終了後にベンドを 0 に戻す（次の音に備える）
-        events.append((sec2tick(end), 1, mido.Message("pitchwheel", channel=ch, pitch=0)))
+        events.append((sec2tick(onset), PRI_ON, mido.Message("note_on", channel=ch, note=n.pitch, velocity=int(np.clip(n.velocity, 1, 127)))))
+        events.append((sec2tick(end), PRI_OFF, mido.Message("note_off", channel=ch, note=n.pitch, velocity=0)))
+        # ノート終了後にベンドを 0 に戻す（次の音に備える）。single モードで次の音が
+        # 終了前に同じチャンネルで始まっている（重なり）ときは、その音のベンドを壊すので出さない
+        if not (mode == "single" and nxt is not None and nxt.onset <= end):
+            events.append((sec2tick(end), PRI_RESET, mido.Message("pitchwheel", channel=ch, pitch=0)))
 
     events.sort(key=lambda e: (e[0], e[1]))
     last_tick = 0

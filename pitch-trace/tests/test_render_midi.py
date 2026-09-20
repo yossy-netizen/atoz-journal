@@ -77,3 +77,36 @@ def test_make_monophonic_trims_overlap():
     assert abs(mono[0].duration - 0.5) < 1e-9
     keep = make_monophonic(ns, overlap_s=0.05)
     assert abs(keep[0].duration - 0.55) < 1e-9
+
+
+def _abs_ticks(path):
+    t = 0
+    for m in mido.MidiFile(path).tracks[0]:
+        t += m.time
+        yield t, m
+
+
+def test_single_mode_legato_join_keeps_portamento_start(tmp_path):
+    """同 tick では 前の note_off → 次の音のベンド → note_on の順。ベンドのリセットが次の音を壊さない。"""
+    p = load_profile("cello_classical")
+    p.transition.prob = 1.0
+    p.attack.prob = 0.0
+    c = generate_contour([Note(60, 0.0, 0.5), Note(67, 0.5, 0.5)], p, seed=0)
+    out = tmp_path / "o.mid"
+    render_midi(c, p, out, mode="single")
+    rows = list(_abs_ticks(out))
+    t_on = next(t for t, m in rows if m.type == "note_on" and m.note == 67)
+    same_tick = [m for t, m in rows if t == t_on and m.type in ("note_on", "note_off", "pitchwheel")]
+    assert [m.type for m in same_tick] == ["note_off", "pitchwheel", "note_on"]
+    assert same_tick[1].pitch < -3000  # 前の音（-700 セント）付近から始まる。0 ではない
+
+
+def test_single_mode_repeated_pitch_does_not_overlap(tmp_path):
+    """同音の連打は legato_overlap_s があっても重ねない（前の note_off が次の音を消すため）。"""
+    p = load_profile("cello_classical")
+    ns = make_monophonic([Note(60, 0.0, 0.6), Note(60, 0.5, 0.5)], overlap_s=0.02)
+    c = generate_contour(ns, p, seed=0)
+    out = tmp_path / "o.mid"
+    render_midi(c, p, out, mode="single", legato_overlap_s=0.02)
+    notes_ev = [(t, m.type) for t, m in _abs_ticks(out) if m.type in ("note_on", "note_off")]
+    assert notes_ev == [(0, "note_on"), (960, "note_off"), (960, "note_on"), (1920, "note_off")]

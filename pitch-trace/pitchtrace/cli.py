@@ -17,6 +17,7 @@ import json
 import sys
 from pathlib import Path
 
+import mido
 import numpy as np
 
 from .analyze import analyze_audio, build_profile
@@ -37,7 +38,19 @@ def _add_render_opts(ap: argparse.ArgumentParser) -> None:
     ap.add_argument("--no-lookahead", action="store_true", help="次の音を見ない（リアルタイム動作の模擬）")
     ap.add_argument("--max-events-per-s", type=float, default=None, help="ベンド/CC の最大密度")
     ap.add_argument("--vibrato-lane", choices=["bend", "cc"], default=None, help="ビブラートの出力先を上書き")
-    ap.add_argument("--tempo", type=float, default=120.0, help="出力 MIDI のテンポ（秒→tick 変換用）")
+    ap.add_argument("--tempo", type=float, default=None, help="出力 MIDI のテンポ（秒→tick 変換用）。既定は入力 MIDI の最初のテンポ、なければ 120")
+
+
+def _output_tempo(args, mf: mido.MidiFile | None) -> float:
+    """--tempo が無ければ入力 MIDI の最初のテンポを使う（DAW 上で小節グリッドを揃えるため）。"""
+    if args.tempo is not None:
+        return args.tempo
+    if mf is not None:
+        for tr in mf.tracks:
+            for msg in tr:
+                if msg.type == "set_tempo":
+                    return float(mido.tempo2bpm(msg.tempo))
+    return 120.0
 
 
 def _prepare(args, notes: list[Note]):
@@ -58,13 +71,14 @@ def cmd_profiles(args) -> int:
 
 
 def cmd_render(args) -> int:
-    notes, _ = load_midi_notes(args.input, track=args.track, channel=args.channel)
+    notes, mf = load_midi_notes(args.input, track=args.track, channel=args.channel)
     if not notes:
         print("音符が見つかりません", file=sys.stderr)
         return 1
     profile, contour = _prepare(args, notes)
     render_midi(contour, profile, args.output, mode=args.mode, bend_range=args.bend_range,
-                legato_overlap_s=args.legato_overlap_ms / 1000.0, max_events_per_s=args.max_events_per_s, tempo_bpm=args.tempo)
+                legato_overlap_s=args.legato_overlap_ms / 1000.0, max_events_per_s=args.max_events_per_s,
+                tempo_bpm=_output_tempo(args, mf))
     n_vib = sum(1 for nc in contour.notes if "vibrato_rate_hz" in nc.params)
     n_port = sum(1 for nc in contour.notes if nc.params.get("portamento"))
     print(f"{len(notes)} 音符 → {args.output}  (profile={profile.name}, mode={args.mode}, vibrato {n_vib}, portamento {n_port})")
@@ -123,16 +137,19 @@ def demo_notes() -> list[Note]:
 def cmd_demo(args) -> int:
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
+    mf = None
     if args.input:
-        notes, _ = load_midi_notes(args.input)
+        notes, mf = load_midi_notes(args.input)
     else:
         notes = demo_notes()
     profile, contour = _prepare(args, notes)
     flat_args = argparse.Namespace(**{**vars(args), "amount": 0.0})
     _, flat = _prepare(flat_args, notes)
     tag = profile.name
-    render_midi(contour, profile, out / f"demo_{tag}.mid", mode=args.mode, bend_range=args.bend_range, tempo_bpm=args.tempo)
-    render_midi(flat, profile, out / "demo_static.mid", mode=args.mode, bend_range=args.bend_range, tempo_bpm=args.tempo)
+    render_kw = dict(mode=args.mode, bend_range=args.bend_range, tempo_bpm=_output_tempo(args, mf),
+                     legato_overlap_s=args.legato_overlap_ms / 1000.0, max_events_per_s=args.max_events_per_s)
+    render_midi(contour, profile, out / f"demo_{tag}.mid", **render_kw)
+    render_midi(flat, profile, out / "demo_static.mid", **render_kw)
     write_wav(out / f"demo_{tag}.wav", synthesize(contour))
     write_wav(out / "demo_static.wav", synthesize(flat))
     print(f"→ {out}/demo_static.(wav|mid) と {out}/demo_{tag}.(wav|mid)  を聴き比べてください")

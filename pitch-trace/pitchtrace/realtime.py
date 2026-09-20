@@ -92,18 +92,23 @@ class RealtimeTracer:
         elif self.passthrough:
             self.send(msg)
 
-    def _alloc_channel(self) -> int:
+    def _alloc_channel(self, now: float) -> int:
         if self.mode == "single":
             return self.channel
         if not self._free_channels:
             # 全チャンネル使用中: 最も古い音を切る
             oldest = min(self.active.values(), key=lambda a: a.onset)
-            self._note_off(oldest.pitch, oldest.onset)
+            self._note_off(oldest.pitch, now)
         return self._free_channels.pop(0)
 
     def _note_on(self, pitch: int, velocity: int, now: float) -> None:
         if pitch in self.active:
             self._note_off(pitch, now)
+        # 同じ音の note_off が保留中なら先に出す（後から届くと新しい音を消してしまう）
+        for item in [x for x in self._pending_off if x[1] == pitch]:
+            self._pending_off.remove(item)
+            self.send(mido.Message("note_off", channel=item[2], note=pitch, velocity=0))
+            self._release_channel(item[2])
         # 前の音との関係。まだ鳴っている音があれば重なり（gap < 0）= レガート
         if self.active:
             gap = -1.0
@@ -117,11 +122,16 @@ class RealtimeTracer:
                     self._remember_prev(a, now)
                 else:
                     self._note_off(p, now)
-        ctx = NoteContext(prev_pitch=self._prev.prev_pitch, gap_s=gap, prev_end_cents=self._prev.prev_end_cents,
-                          prev_intonation=self._prev.prev_intonation, next_legato=None, phrase_end=None, is_climax=False)
+        if self.active:
+            # まだ鳴っている音がある（MPE の重なり）: 直近に始まった音の現在位置から滑る
+            newest = max(self.active.values(), key=lambda a: a.onset)
+            ctx = self._context_from(newest, now, gap)
+        else:
+            ctx = NoteContext(prev_pitch=self._prev.prev_pitch, gap_s=gap, prev_end_cents=self._prev.prev_end_cents,
+                              prev_intonation=self._prev.prev_intonation, next_legato=None, phrase_end=None, is_climax=False)
         note = Note(pitch=pitch, onset=now, duration=self.max_note_s, velocity=velocity)
         contour = generate_note(note, ctx, self.profile, self.rng, amount=self.amount, duration_s=self.max_note_s)
-        ch = self._alloc_channel()
+        ch = self._alloc_channel(now)
         a = _Active(contour=contour, pitch=pitch, onset=now, channel=ch)
         self.active[pitch] = a
         self._emit_sample(a, 0)   # ノートオンより先にベンドを出す
@@ -132,10 +142,15 @@ class RealtimeTracer:
         self.stats["portamento"] += int(bool(contour.params.get("portamento")))
         self.stats["vibrato"] += int("vibrato_rate_hz" in contour.params)
 
-    def _remember_prev(self, a: _Active, now: float) -> None:
+    def _context_from(self, a: _Active, now: float, gap: float = 1e9) -> NoteContext:
+        """鳴っている（または今切った）音 a の now 時点の状態から、次の音の NoteContext を作る。"""
         k = int((now - a.onset) / self.hop_s)
-        self._prev = NoteContext(prev_pitch=a.pitch, prev_end_cents=a.contour.end_cents_at(k),
-                                 prev_intonation=a.contour.params["intonation_cents"])
+        return NoteContext(prev_pitch=a.pitch, gap_s=gap, prev_end_cents=a.contour.end_cents_at(k),
+                           prev_intonation=a.contour.params["intonation_cents"],
+                           next_legato=None, phrase_end=None, is_climax=False)
+
+    def _remember_prev(self, a: _Active, now: float) -> None:
+        self._prev = self._context_from(a, now)
         self._prev_off_time = now
 
     def _note_off(self, pitch: int, now: float) -> None:
@@ -156,10 +171,11 @@ class RealtimeTracer:
     def all_notes_off(self, now: float) -> None:
         for p in list(self.active):
             self._note_off(p, now)
-        for _, p, ch in self._pending_off:
+        # 先に保留リストを空にしないと、single モードの _release_channel がベンドを戻さない
+        pending, self._pending_off = self._pending_off, []
+        for _, p, ch in pending:
             self.send(mido.Message("note_off", channel=ch, note=p, velocity=0))
             self._release_channel(ch)
-        self._pending_off.clear()
 
     # ---- 時間の進行 --------------------------------------------------------
     def _emit_sample(self, a: _Active, k: int) -> None:

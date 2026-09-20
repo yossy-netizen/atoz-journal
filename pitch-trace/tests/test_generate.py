@@ -98,3 +98,20 @@ def test_no_lookahead_ignores_phrase_end():
     la = generate_contour(phrase(), p, seed=2, lookahead=True)
     nl = generate_contour(phrase(), p, seed=2, lookahead=False)
     assert la.notes[2].params["vibrato_depth_cents"] > nl.notes[2].params["vibrato_depth_cents"] * 2.5
+
+
+def test_legato_join_is_continuous_for_any_amount():
+    """レガートの繋ぎ目で、前の音の終端偏差と次の音の開始偏差が一致する（amount によらず）。"""
+    p = load_profile("cello_classical")
+    p.transition.prob = 1.0
+    p.attack.prob = 0.0
+    p.jitter.cents = 0.0
+    p.vibrato.prob = 0.0
+    p.release.prob = 0.0
+    p.drift.cents.mean = p.drift.cents.std = 0.0
+    p.intonation.cents.mean, p.intonation.cents.std, p.intonation.continuity = 20.0, 0.0, 0.0
+    p.transition.overshoot_cents.mean = p.transition.overshoot_cents.std = 0.0
+    for amount in (1.0, 0.5):
+        c = generate_contour([Note(60, 0.0, 0.5), Note(65, 0.5, 0.5)], p, seed=0, amount=amount)
+        prev_end = c.notes[0].cents[-1]
+        assert abs(c.notes[1].cents[0] - (-500.0 * amount + prev_end)) < 1e-6
