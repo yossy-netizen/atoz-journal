@@ -77,6 +77,16 @@ CV Rider の中には、この 2 人の先生（＝**ライダー**）がいて�
 | **Bypass** | 効果をオフにして、かける前と聞き比べる |
 | **Preset** | よく使う設定のセット（次の章） |
 
+## 3.5 パソコンに入れる（Mac / Logic Pro）
+
+1. このリンクをクリックしてダウンロード: https://github.com/yossy-netizen/atoz-journal/releases/download/cvrider-latest/cvrider-macos.zip
+2. 「ダウンロード」フォルダの `cvrider-macos.zip` をダブルクリックして展開（ふくらませる）。
+3. できたフォルダの中の **「Install CV Rider.command」をダブルクリック**。黒い画面（ターミナル）が開いて勝手に進み、「インストール完了」と出たら Enter。
+   - 「開発元を確認できない」と言われたら: そのファイルを **右クリック → 開く → 開く**。
+4. Logic Pro を起動し直して、ボーカルトラックの **Audio FX → Audio Units → AtoZ Studio → CV Rider**。
+
+もっと詳しい手順（つまずいたとき用）: [logic-setup.md](logic-setup.md)
+
 ## 4. 使い方 3 ステップ
 
 1. **プリセットを選ぶ**

@@ -74,6 +74,8 @@ jobs:
   macos:
     name: macOS build (AU + VST3 universal) + auval + pluginval
     runs-on: macos-latest
+    permissions:
+      contents: write   # to publish the rolling pre-release
     steps:
       - uses: actions/checkout@v4
       - name: Configure (fetches JUCE 8.0.4)
@@ -112,13 +114,32 @@ jobs:
           name: pluginval-logs-macos
           path: pluginval-logs
           if-no-files-found: ignore
-      - name: Package bundles
-        working-directory: plugin/juce/build/CVRider_artefacts/Release
+      - name: Package bundles (ditto keeps executable bits, symlinks and signatures)
+        working-directory: plugin/juce
         run: |
-          mkdir -p ../../../dist
-          cp -R "AU/CV Rider.component" "VST3/CV Rider.vst3" "Standalone/CV Rider.app" ../../../dist/
-          cp ../../../install-mac.sh ../../../dist/
+          rm -rf dist && mkdir -p dist/cvrider-macos
+          cp -R "build/CVRider_artefacts/Release/AU/CV Rider.component" \
+                "build/CVRider_artefacts/Release/VST3/CV Rider.vst3" \
+                "build/CVRider_artefacts/Release/Standalone/CV Rider.app" dist/cvrider-macos/
+          cp install-mac.sh "Install CV Rider.command" ../docs/README-INSTALL.txt dist/cvrider-macos/
+          chmod +x dist/cvrider-macos/install-mac.sh "dist/cvrider-macos/Install CV Rider.command"
+          (cd dist && ditto -c -k --sequesterRsrc --keepParent cvrider-macos cvrider-macos.zip)
+          ls -la dist
       - uses: actions/upload-artifact@v4
         with:
           name: cvrider-macos
-          path: plugin/juce/dist
+          path: plugin/juce/dist/cvrider-macos.zip
+      - name: Publish rolling pre-release "cvrider-latest" (push events only)
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        working-directory: plugin/juce/dist
+        run: |
+          TAG=cvrider-latest
+          NOTES="CV Rider — 最新ビルド（ブランチ: ${GITHUB_REF_NAME}、コミット: ${GITHUB_SHA::7}、$(date -u +%Y-%m-%d\ %H:%M) UTC）。
+
+          cvrider-macos.zip をダウンロード → ダブルクリックで展開 → 中の「Install CV Rider.command」をダブルクリック。
+          詳しい手順: plugin/docs/logic-setup.md"
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" cvrider-macos.zip --prerelease --target "$GITHUB_SHA" \
+            --title "CV Rider 最新ビルド (macOS AU/VST3)" --notes "$NOTES"

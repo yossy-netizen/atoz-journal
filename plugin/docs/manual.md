@@ -1,7 +1,7 @@
 # CV Rider 詳細マニュアル
 
-バージョン 0.2.0（2026-09-20）。対象: エンジニア・上級ユーザー。
-噛み砕いた説明は [guide-for-everyone.md](guide-for-everyone.md)、用語と背景は [background.md](background.md)、変更履歴は [CHANGELOG.md](CHANGELOG.md)。
+バージョン 0.2.1（2026-09-21）。対象: エンジニア・上級ユーザー。
+噛み砕いた説明は [guide-for-everyone.md](guide-for-everyone.md)、用語と背景は [background.md](background.md)、Logic での導入は [logic-setup.md](logic-setup.md)、変更履歴は [CHANGELOG.md](CHANGELOG.md)。
 
 ![エディタ](editor.png)
 
@@ -112,12 +112,12 @@ gain[dB] = c·(gc + TrimC) + (1 − c)·(gv + TrimV) + Output
 
 ### macOS（テスト運用 → 本番）
 
-**CI の成果物を使う（推奨）**
-1. GitHub → Actions → 最新の「plugin tests」→ Artifacts → `cvrider-macos` をダウンロード・展開
-2. `cd cvrider-macos && chmod +x install-mac.sh && ./install-mac.sh .`
-3. DAW を再起動（Logic: 環境設定 → プラグインマネージャー → リセット & 再スキャン）
+**ビルド済みを使う（推奨）** — 詳細は [logic-setup.md](logic-setup.md)
+1. https://github.com/yossy-netizen/atoz-journal/releases/download/cvrider-latest/cvrider-macos.zip をダウンロード（CI が `push` のたびに更新する rolling pre-release `cvrider-latest`）
+2. zip をダブルクリックで展開 → `Install CV Rider.command` をダブルクリック
+3. DAW を再起動（Logic: 設定 → プラグインマネージャー → リセット & 再スキャン）
 
-`install-mac.sh` は AU / VST3 / Standalone をコピーし、隔離属性（`com.apple.quarantine`）を除去、アドホック署名、`auval -v aufx Cvrd AtoZ` を実行する。
+zip は `ditto` で作成（実行ビット・シンボリックリンク・署名を保持）。`install-mac.sh` は AU / VST3 / Standalone をコピーし、実行ビットを復元、隔離属性（`com.apple.quarantine`）を除去、アドホック署名、`auval -v aufx Cvrd AtoZ` を実行する。Actions の Artifacts にも同じ zip が `cvrider-macos` として残る。
 
 **Mac 上でビルド**
 ```bash

@@ -2,6 +2,20 @@
 
 日付は UTC。各項目に「ユーザーから見える影響」と「検証」を書く。
 
+## 0.2.1 — 2026-09-21
+
+### 追加
+- **ワンクリック配布**: CI が `push` のたびに GitHub Releases の rolling pre-release `cvrider-latest` を更新。固定リンク
+  https://github.com/yossy-netizen/atoz-journal/releases/download/cvrider-latest/cvrider-macos.zip からブラウザで直接ダウンロードできる（Actions のログイン画面を経由しない）。
+- **ダブルクリックでインストール**: zip に `Install CV Rider.command` を同梱。ターミナル操作なしで AU / VST3 の導入、隔離解除、署名、`auval` まで実行。
+- **Logic Pro 向け導入手順** `docs/logic-setup.md`（Mac Studio M2 / Sequoia 想定。ダウンロード場所、Gatekeeper の通し方、プラグインマネージャーでの再スキャン、最初の音出し、PDC の確認、アンインストール）。zip 内にも `README-INSTALL.txt` を同梱。
+
+### 修正
+- **配布 zip で実行ビットが落ちる問題**: Actions の Artifact 圧縮は実行権限を保持しないため、展開後の AU が読み込めない可能性があった。`ditto` で zip を作るよう変更し、`install-mac.sh` でも実行ビットを復元するようにした。
+
+### 検証
+- Linux CI は変更なし（C++ / Web / JUCE + pluginval）。macOS ジョブで zip 生成と Release 公開を追加。
+
 ## 0.2.0 — 2026-09-20
 
 ### 追加

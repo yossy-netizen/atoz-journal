@@ -13,6 +13,8 @@ APP="$SRC/CV Rider.app"
 
 for b in "$AU" "$VST3" "$APP"; do
   [[ -e "$b" ]] || continue
+  # zip tools sometimes drop the executable bit: restore it on the bundle binaries
+  find "$b/Contents/MacOS" -type f -exec chmod +x {} + 2>/dev/null || true
   xattr -dr com.apple.quarantine "$b" 2>/dev/null || true
   codesign --force --deep --sign - "$b"
 done

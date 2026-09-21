@@ -28,6 +28,7 @@ DSP コアは `cpp/CVRider.h` が正本で、JUCE 版は薄いラッパー、Web
 | エンジニア・上級ユーザー | [docs/manual.md](docs/manual.md) — 詳細マニュアル |
 | スタッフ・生徒（中学生でも分かる） | [docs/guide-for-everyone.md](docs/guide-for-everyone.md) — 噛み砕いた説明 |
 | 使う人全員 | [docs/background.md](docs/background.md) — 周辺知識（dB、子音と母音、ライダーとコンプ、レイテンシ、AU / VST3） |
+| Logic Pro で使う人 | [docs/logic-setup.md](docs/logic-setup.md) — ダウンロードから最初の音出しまで |
 | 全員 | [docs/CHANGELOG.md](docs/CHANGELOG.md) — 変更履歴 |
 
 ## 信号処理の仕組み
@@ -114,15 +115,10 @@ cmake --build build --config Release
 
 #### macOS（Mac mini M4 でのテスト運用 → Mac Studio M2 での本番使用）
 
-**A. CI のビルド成果物を使う（ビルド環境不要）**
+**A. ビルド済みを使う（ビルド環境不要）** — 詳細は [docs/logic-setup.md](docs/logic-setup.md)
 
-1. GitHub の Actions タブ → 最新の「plugin tests」ラン → Artifacts の `cvrider-macos` をダウンロードして展開
-2. ターミナルで:
-   ```bash
-   cd cvrider-macos
-   chmod +x install-mac.sh && ./install-mac.sh .
-   ```
-   AU / VST3 を `~/Library/Audio/Plug-Ins/` にコピーし、ダウンロード時の隔離属性を外してアドホック署名し、`auval` で検証します。
+1. https://github.com/yossy-netizen/atoz-journal/releases/download/cvrider-latest/cvrider-macos.zip をダウンロードして展開
+2. `Install CV Rider.command` をダブルクリック（AU / VST3 を `~/Library/Audio/Plug-Ins/` にコピーし、隔離属性を外してアドホック署名し、`auval` で検証）
 3. DAW を再起動してプラグインを再スキャン（Logic は自動、Cubase / Studio One は設定から）
 
 **B. Mac 上でビルドする**
