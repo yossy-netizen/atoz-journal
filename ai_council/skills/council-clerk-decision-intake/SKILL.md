@@ -32,7 +32,7 @@
 - 伝令タスクは各自の曜日に `type=urgent` を最優先で処理する。より早く回したい場合は阿藤さんがデスクトップアプリで該当伝令を「今すぐ実行」する（Phase 3 で tasklist-monitor に検知を追加）。
 
 ## 4. 舞さん共有（Dropbox）の更新
-- 実体パス：`/Volumes/Cloud_Drive/StudioATO Dropbox/StudioATO チーム フォルダ/阿藤舞共有AI合議/`。無ければ `_alerts/YYYY-MM-DD_mai_share_missing.md` を書いてこの節を飛ばす（選択型同期の可能性。存在しないと結論しない）。
+- 実体パス：`/Volumes/Cloud_Drive/StudioATO Dropbox/阿藤芳史/AI合議/阿藤舞共有AI合議/`。無ければ `_alerts/YYYY-MM-DD_mai_share_missing.md` を書いてこの節を飛ばす（選択型同期の可能性。存在しないと結論しない）。
 - `index.html` を雛形 `06_ペルソナ台帳/_templates/mai_share_index.html` から再生成：進行中の議題（タイトル・状態・採決期限）、各将の要旨1行（`40_諸葛亮_統合_C案.md` の「各将の要旨」から）、直近の決定と阿藤さんからの返答、投稿の仕方。既存 index.html と内容が同じなら書かない。書くときは `r+b` で上書き（inode維持）。
 - `02_定期報告/` の最新週次報告を `01_お知らせ/` に `.md` と `.html`（Markdown を最小限のHTMLに変換、外部依存なし）でコピー。同名があればスキップ。
 - 採決に「人間の客席への返答」があれば `01_お知らせ/YYYY-MM-DD_阿藤さんからの返答.md` を置く（原文のまま）。

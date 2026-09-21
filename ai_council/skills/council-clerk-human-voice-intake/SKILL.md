@@ -18,7 +18,7 @@
 1. `/Volumes/Cloud_Drive/Google_Drive_My_Drive/AtoZ_Cowork/Documents/AI会議/合議2.0/05_人間意見箱/` の未処理ファイル（`_完了/` に同名が無いもの）。雛形：冒頭に「議題：」「発言者：」「公開範囲：」の3行、以下本文。
 2. `AtoZ_Cowork/Other_Services/Notta_Export/` の分類済み会議録（notta-transcript-processor の出力）のうち、直近7日で「スクール」「制作」「経営」に分類されたもの。
 3. `AtoZ_Cowork/School/` の問い合わせ収集結果（inquiry-mail-collector）と体験申込チェックの直近7日分。
-4. Dropbox「阿藤舞共有AI合議/02_ご意見/」（実体パス `/Volumes/Cloud_Drive/StudioATO Dropbox/StudioATO チーム フォルダ/阿藤舞共有AI合議/02_ご意見/`）の未処理ファイル（`_受領済み/` に同名が無いもの）。フォルダが無ければ `_alerts/` に警報し、この入力を飛ばす。音声メモは Notta 経由の文字起こしを待つ（Notta_Export に現れたものを 2. で拾う）。
+4. Dropbox「阿藤舞共有AI合議/02_ご意見/」（実体パス `/Volumes/Cloud_Drive/StudioATO Dropbox/阿藤芳史/AI合議/阿藤舞共有AI合議/02_ご意見/`）の未処理ファイル（`_受領済み/` に同名が無いもの）。フォルダが無ければ `_alerts/` に警報し、この入力を飛ばす。音声メモは Notta 経由の文字起こしを待つ（Notta_Export に現れたものを 2. で拾う）。
 5. （Phase 2）講師向け意見箱フォーム・生徒アンケートの回答スプレッドシート。
 
 ## 2. 議題への紐づけ
