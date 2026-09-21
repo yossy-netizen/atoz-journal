@@ -44,3 +44,8 @@ python3 tools/build.py
 3. **Journal auto poster**（週2・月木）… `02-1` の最古記事を取得 → ここに commit & push → サイト反映 → `02-2_公開済み` へコピー
 
 運用ドキュメント: Google Drive `AtoZ_Master/Operations_Manual/Journal/`
+
+## プラグイン開発（plugin/）
+
+子音と母音を別々にライドする Vocal Rider 系プラグイン「CV Rider」の開発ディレクトリ。
+DSP コア（C++）・JUCE 版（VST3/AU）・ブラウザ版デモを含む。詳細は [plugin/README.md](plugin/README.md)。

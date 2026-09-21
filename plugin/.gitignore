@@ -1,0 +1,6 @@
+build/
+*.o
+cpp/test/test_cvrider
+cpp/test/test_phonemes
+node_modules/
+dist/
