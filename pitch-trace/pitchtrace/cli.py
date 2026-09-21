@@ -11,6 +11,8 @@
   pitchtrace plot    out.png [--igf X] [--midi Y --profile P]  可視化（要 matplotlib）
   pitchtrace eval    [--profile P | --all] [--igf A --igf2 B]
                                             客観評価（往復精度 / IGF 同士の分布比較）
+  pitchtrace doctor                         環境診断（入っているか / Logic から見えるか）
+  pitchtrace bendcheck out.mid [opts]       ベンドレンジ合わせの検査 MIDI を作る
   pitchtrace ports                          MIDI ポート一覧
   pitchtrace live    [--in NAME] [--out NAME] [opts]
                                             DAW からリアルタイムに受けてピッチベンド付きで返す
@@ -310,6 +312,29 @@ def cmd_demo(args) -> int:
     return 0
 
 
+def cmd_doctor(args) -> int:
+    from .doctor import format_report, run_checks
+    report = run_checks(midi=not args.no_midi)
+    print(format_report(report))
+    if args.json:
+        Path(args.json).write_text(json.dumps(report.to_dict(), ensure_ascii=False, indent=1), encoding="utf-8")
+        print(f"→ {args.json}（この内容を貼れば、離れた場所からでも原因を絞り込めます）")
+    return 1 if report.failed else 0
+
+
+def cmd_bendcheck(args) -> int:
+    from .bendcheck import instructions, save_bendcheck
+    try:
+        save_bendcheck(args.output, bend_range=args.bend_range, note=args.note,
+                       tempo_bpm=args.tempo, channel=args.channel)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    print(f"→ {args.output}")
+    print(instructions(args.bend_range, args.note))
+    return 0
+
+
 def cmd_ports(args) -> int:
     try:
         from .realtime import list_ports
@@ -382,6 +407,19 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("--fmin", type=float, default=55.0, help="F0 の下限 Hz（チェロの最低音 C2 = 65 Hz を含む既定 55）"); a.add_argument("--fmax", type=float, default=1500.0)
     a.add_argument("--notes-json", default=None, help="音符ごとの推定値も JSON で書き出す")
     a.set_defaults(func=cmd_analyze)
+
+    dc = sub.add_parser("doctor", help="環境診断（足りないもの・Logic から見えるかを調べる）")
+    dc.add_argument("--json", default=None, help="診断結果を JSON に保存（相談時に貼る用）")
+    dc.add_argument("--no-midi", action="store_true", help="MIDI ポートの確認を省く")
+    dc.set_defaults(func=cmd_doctor)
+
+    bc = sub.add_parser("bendcheck", help="ベンドレンジ合わせの検査 MIDI を作る")
+    bc.add_argument("output", help="出力 MIDI")
+    bc.add_argument("--bend-range", type=int, default=12, help="確かめたいベンドレンジ（半音、既定 12）")
+    bc.add_argument("--note", type=int, default=60, help="基準にする音の MIDI ノート番号（既定 60 = C4）")
+    bc.add_argument("--tempo", type=float, default=90.0, help="テンポ BPM（既定 90）")
+    bc.add_argument("--channel", type=int, default=0, help="MIDI チャンネル（0 始まり）")
+    bc.set_defaults(func=cmd_bendcheck)
 
     sub.add_parser("ports", help="MIDI ポート一覧").set_defaults(func=cmd_ports)
 

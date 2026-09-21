@@ -40,6 +40,11 @@ jobs:
           pitchtrace transfer out/ref.igf.json out/demo_static.mid out/transfer.mid --mapping context --wav out/transfer.wav
           pitchtrace plot out/plot.png --igf out/ref.igf.json --midi out/demo_static.mid --profile alto_sax_jazz
           pitchtrace ports || true   # ランナーに MIDI デバイスはないが、rtmidi の読み込み確認
+      - name: CLI smoke (doctor / bendcheck)
+        run: |
+          pitchtrace doctor --json out/doctor.json
+          pitchtrace bendcheck out/bendcheck.mid --bend-range 12
+          pitchtrace bendcheck out/bendcheck2.mid --bend-range 2 --note 48 --tempo 100
       - name: Mac setup script
         if: runner.os == 'macOS'
-        run: bash scripts/setup_mac.sh --live
+        run: bash scripts/setup_mac.sh --logic

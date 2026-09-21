@@ -1,11 +1,12 @@
-# PitchTrace（v0.3 プロトタイプ）
+# PitchTrace（v0.4 プロトタイプ）
 
 生楽器（バイオリン・チェロ・オーボエ・サックス等、単旋律）の**ピッチの揺らぎ・繋ぎ・外し方**を
 プロファイル化し、MIDI 打ち込みにピッチベンド / MPE / CC として付与するツール。
 構想は [`../notes/pitch-trace/CONCEPT.md`](../notes/pitch-trace/CONCEPT.md)。
 
-この v0.2 は構想のフェーズ 0〜1（L0: ルール + 統計エンジン、スタンドアロン CLI）に、中間表現 IGF と
-参照演奏の転写（Reference Performance Transfer）、リアルタイム処理を加えたもの。
+この v0.4 は構想のフェーズ 0〜1（L0: ルール + 統計エンジン、スタンドアロン CLI）に、中間表現 IGF と
+参照演奏の転写（Reference Performance Transfer）、リアルタイム処理、環境診断と DAW 設定の検証を
+加えたもの。
 
 ## できること
 
@@ -24,21 +25,34 @@
 | `pitchtrace live --profile violin_classical` | 仮想 MIDI ポート `PitchTrace In/Out` を作り、DAW からリアルタイムに受けてピッチベンド付きで返す（要 `pip install python-rtmidi`） |
 | `pitchtrace ports` | MIDI ポート一覧 |
 | `pitchtrace profiles` | 組み込みプロファイル一覧 |
+| `pitchtrace doctor` | 環境診断。何が入っていて何が足りないか、DAW から見える状態かを一覧にする。`--json` で相談用に保存 |
+| `pitchtrace bendcheck check.mid` | ベンドレンジ合わせの検査 MIDI。音源側の設定が合っているかを耳で判定できる |
 
 組み込みプロファイル: `violin_classical` `cello_classical` `oboe_classical` `alto_sax_classical` `alto_sax_jazz`（比較用 `random_humanize`）
 （v0 は文献値と経験則による**手調整の目安**。実測で更新する前提）
 
 ## セットアップ
 
+Mac で Logic Pro と使うなら、これ 1 行で venv 作成からデモ生成・環境診断まで行う。
+
+```bash
+cd pitch-trace
+bash scripts/setup_mac.sh --logic
+source .venv/bin/activate
+```
+
+手動で入れる場合:
+
 ```bash
 cd pitch-trace
 pip install -e ".[dev,live,viz]" # live はリアルタイム用（python-rtmidi）、viz は plot 用（matplotlib）、analysis は pYIN 用（librosa）
 python -m pytest -q
+pitchtrace doctor                                         # 足りないものを確認
 pitchtrace demo /tmp/pt_demo --profile violin_classical   # demo_static.wav と demo_violin_classical.wav を聴き比べ
 ```
 
 文書は [`docs/`](docs/README.md) にまとめてある: やさしい解説（`GUIDE_FOR_EVERYONE.md`）、
-周辺知識（`BACKGROUND.md`）、Mac セットアップ（`MAC_SETUP.md`）、詳細マニュアル（`MANUAL.md`）。`bash scripts/setup_mac.sh --live` で venv 作成からデモ生成まで行う。
+周辺知識（`BACKGROUND.md`）、Mac セットアップと Logic Pro 連携（`MAC_SETUP.md`）、詳細マニュアル（`MANUAL.md`）。
 
 依存は numpy と mido のみ。F0 抽出は YIN の自前実装（精度が要る段階で CREPE / PESTO に差し替える）。
 

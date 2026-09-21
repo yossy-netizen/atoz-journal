@@ -9,7 +9,7 @@
 - synth     … A/B 試聴用の簡易シンセ
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 from .profile import Profile, load_profile, list_builtin_profiles
 from .notes import Note, load_midi_notes, split_phrases
