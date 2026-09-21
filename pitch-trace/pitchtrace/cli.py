@@ -336,11 +336,13 @@ def cmd_bendcheck(args) -> int:
 
 
 def cmd_ports(args) -> int:
-    try:
-        from .realtime import list_ports
-        ins, outs = list_ports()
-    except Exception as e:  # rtmidi 未インストールなど
-        print(f"MIDI ポートを列挙できません: {e}\n  pip install python-rtmidi を実行してください", file=sys.stderr)
+    # 列挙は別プロセスで行う。RtMidi は初期化に失敗するとプロセスごと落とすことがあるため
+    # （doctor.probe_ports の説明を参照）。
+    from .doctor import probe_ports
+    ins, outs, why = probe_ports()
+    if why:
+        print(f"MIDI ポートを列挙できません: {why}", file=sys.stderr)
+        print("  詳しい原因は pitchtrace doctor を実行してください", file=sys.stderr)
         return 1
     print("入力:")
     for n in ins:

@@ -258,7 +258,8 @@ WAV と、答え `blind_answer.json` を出します。
 
 ### 4.11 `ports`
 
-MIDI ポート一覧（python-rtmidi が必要）。
+MIDI ポート一覧（python-rtmidi が必要）。列挙は別プロセスで行うため、MIDI の初期化に失敗しても
+異常終了せず、終了コード 1 とエラー文を返します。原因の詳細は `doctor` で調べてください。
 
 ### 4.12 `live`
 
@@ -301,6 +302,13 @@ MIDI ポート一覧（python-rtmidi が必要）。
 
 「仮想ポートを実際に作れるか」は、`PitchTrace Doctor` という CoreMIDI ポートを一瞬だけ作って閉じる
 実地テストです。ここが `OK` なら、`pitchtrace live` の仮想ポートも Logic から見えます。
+
+MIDI に触る 2 項目は**別プロセスで実行**します。RtMidi は CoreMIDI や ALSA の初期化に失敗したとき、
+C++ の例外のままプロセスを異常終了させることがあり（`libc++abi: terminating due to unexpected
+exception of type RtMidiError`）、Python の `try` / `except` では捕まえられないためです。
+環境を診断するコマンドが、まさに診断したい壊れた環境で落ちては意味がないので隔離しています。
+`ports` も同じ理由で別プロセス経由です。macOS では画面にログインしたセッションが必要なため、
+SSH 越しや自動実行ではこの 2 項目が `注意` になることがあります。
 
 ### 4.14 `bendcheck out.mid`
 

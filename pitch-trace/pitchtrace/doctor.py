@@ -9,8 +9,10 @@
 from __future__ import annotations
 
 import importlib
+import json
 import platform
 import shutil
+import subprocess
 import sys
 from dataclasses import dataclass, field, asdict
 
@@ -129,23 +131,76 @@ def _check_optional(r: Report) -> None:
             r.add(f"{dist}（{why}）", WARN, "未インストール", fix)
 
 
+_PROBE_PORTS = """
+import json, mido
+print(json.dumps({"ins": mido.get_input_names(), "outs": mido.get_output_names()}))
+"""
+
+_PROBE_VIRTUAL = """
+import json, mido, sys
+name = sys.argv[1]
+port = mido.open_output(name, virtual=True)
+port.close()
+print(json.dumps({"ok": True}))
+"""
+
+
+def _probe(code: str, *args: str, timeout: float = 30.0) -> tuple[dict | None, str]:
+    """MIDI に触る処理を別プロセスで実行し、結果か失敗理由を返す。
+
+    RtMidi は CoreMIDI や ALSA の初期化に失敗したとき、C++ 例外のままプロセスを異常終了させる
+    ことがある（`libc++abi: terminating due to unexpected exception of type RtMidiError`）。
+    これは Python の try/except では捕まえられない。環境を診断するためのコマンドが、
+    まさに診断したい壊れた環境でだけ落ちては意味がないので、子プロセスに隔離する。
+    """
+    try:
+        r = subprocess.run([sys.executable, "-c", code, *args],
+                           capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return None, "応答がありません（タイムアウト）"
+    except Exception as e:  # 実行そのものができない
+        return None, f"{type(e).__name__}: {e}"
+    if r.returncode != 0:
+        lines = [ln for ln in (r.stderr or "").strip().splitlines() if ln.strip()]
+        why = lines[-1] if lines else f"終了コード {r.returncode}"
+        if r.returncode < 0 or r.returncode >= 128:
+            why = f"{why}（プロセスが異常終了）"
+        return None, why
+    out = (r.stdout or "").strip().splitlines()
+    if not out:
+        return None, "出力がありません"
+    try:
+        return json.loads(out[-1]), ""
+    except Exception:
+        return None, "出力を解釈できません"
+
+
+def probe_ports() -> tuple[list[str], list[str], str]:
+    """MIDI ポートの一覧を安全に取得する。失敗した場合は 3 つ目に理由が入る。"""
+    data, why = _probe(_PROBE_PORTS)
+    if data is None:
+        return [], [], why
+    return list(data.get("ins", [])), list(data.get("outs", [])), ""
+
+
+def _midi_fix_hint() -> str:
+    try:
+        importlib.import_module("rtmidi")
+    except Exception:
+        return "python-rtmidi が要ります。 bash scripts/setup_mac.sh --live で入ります"
+    return ("MIDI の仕組み自体を初期化できません。macOS では画面にログインしたセッションが要るため、"
+            "SSH 越しや自動実行では出ないことがあります。Linux コンテナでは ALSA がないため出ません。"
+            "オフラインの render だけを使うなら問題ありません")
+
+
 def _check_midi_ports(r: Report) -> None:
     try:
-        import mido
+        importlib.import_module("mido")
     except Exception:
         return
-    try:
-        ins = mido.get_input_names()
-        outs = mido.get_output_names()
-    except Exception as e:
-        try:
-            importlib.import_module("rtmidi")
-            fix = ("MIDI の仕組み自体が使えません。macOS なら Logic などを一度起動してから "
-                   "もう一度試してください。Linux コンテナでは ALSA がないため出ません。"
-                   "オフラインの render だけを使うなら問題ありません")
-        except Exception:
-            fix = "python-rtmidi が要ります。 bash scripts/setup_mac.sh --live で入ります"
-        r.add("MIDI ポートの列挙", WARN, str(e), fix)
+    ins, outs, why = probe_ports()
+    if why:
+        r.add("MIDI ポートの列挙", WARN, why, _midi_fix_hint())
         return
     r.add("MIDI 入力ポート", OK if ins else WARN,
           "、".join(ins) if ins else "見つかりません",
@@ -167,21 +222,14 @@ def _check_midi_ports(r: Report) -> None:
 def _check_virtual_port(r: Report) -> None:
     """CoreMIDI に仮想ポートを作れるか。Logic から PitchTrace が見えるかの実地テスト。"""
     try:
-        import mido
+        importlib.import_module("mido")
     except Exception:
         return
     name = "PitchTrace Doctor"
-    try:
-        port = mido.open_output(name, virtual=True)
-    except Exception as e:
-        r.add("仮想 MIDI ポートの作成", WARN, str(e),
-              "macOS では python-rtmidi があれば作れます。Linux では ALSA が必要です。"
-              "オフラインの render だけを使うなら問題ありません")
+    data, why = _probe(_PROBE_VIRTUAL, name)
+    if data is None:
+        r.add("仮想 MIDI ポートの作成", WARN, why, _midi_fix_hint())
         return
-    try:
-        port.close()
-    except Exception:
-        pass
     r.add("仮想 MIDI ポートの作成", OK, f"'{name}' を作成して閉じました")
 
 

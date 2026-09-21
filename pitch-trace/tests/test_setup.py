@@ -11,6 +11,7 @@ import pytest
 
 from pitchtrace.bendcheck import build_bendcheck, instructions
 from pitchtrace.cli import main
+from pitchtrace import doctor
 from pitchtrace.doctor import FAIL, OK, WARN, format_report, run_checks
 from pitchtrace.render_midi import BEND_MAX, BEND_MIN
 
@@ -54,6 +55,50 @@ def test_doctor_survives_midi_probe():
     """MIDI が使えない環境（CI の Linux コンテナ等）でも落ちず、必須項目を落とさない。"""
     r = run_checks(midi=True)
     assert not r.failed, [c.name for c in r.failed]
+
+
+def test_probe_survives_a_child_process_that_aborts():
+    """RtMidi は初期化失敗時に C++ 例外のままプロセスを落とす。
+
+    Python の try/except では捕まえられないので、子プロセスに隔離して
+    「異常終了した」という結果に変換できている必要がある。
+    """
+    data, why = doctor._probe("import os; os.abort()")
+    assert data is None
+    assert "異常終了" in why
+
+
+def test_probe_reports_a_child_that_raises():
+    data, why = doctor._probe("raise RuntimeError('壊れています')")
+    assert data is None and "壊れています" in why
+
+
+def test_probe_reports_a_child_that_hangs():
+    data, why = doctor._probe("import time; time.sleep(30)", timeout=1.0)
+    assert data is None and "タイムアウト" in why
+
+
+def test_probe_returns_parsed_json():
+    data, why = doctor._probe("import json; print(json.dumps({'a': 1}))")
+    assert why == "" and data == {"a": 1}
+
+
+def test_probe_ports_never_raises():
+    ins, outs, why = doctor.probe_ports()
+    assert isinstance(ins, list) and isinstance(outs, list) and isinstance(why, str)
+
+
+def test_ports_command_does_not_crash():
+    """MIDI が使えない環境でも、異常終了ではなく通常の終了コードで返る。"""
+    r = subprocess.run([sys.executable, "-m", "pitchtrace.cli", "ports"],
+                       capture_output=True, text=True, cwd=ROOT)
+    assert r.returncode in (0, 1), f"異常終了しました: {r.returncode}"
+
+
+def test_doctor_command_does_not_crash():
+    r = subprocess.run([sys.executable, "-m", "pitchtrace.cli", "doctor"],
+                       capture_output=True, text=True, cwd=ROOT)
+    assert r.returncode in (0, 1), f"異常終了しました: {r.returncode}\n{r.stderr[-2000:]}"
 
 
 # --- bendcheck ----------------------------------------------------------
