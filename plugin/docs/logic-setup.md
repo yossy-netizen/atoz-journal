@@ -5,19 +5,61 @@
 
 ## 0. 用意するもの
 
-- ダウンロード用のリンク（下記）
 - Logic Pro（起動していたら、インストールの前に一度終了しておく）
+- 下の **方法 A** ならターミナル、**方法 B** なら Finder だけ
 
-## 1. ダウンロードする
+インストール方法は 2 つあります。**迷ったら方法 A** が確実です
+（ターミナル経由のダウンロードには macOS の「隔離マーク」が付かないため、
+「開発元を確認できません」のダイアログが一切出ません）。
 
-**最新ビルドの直接リンク（クリックすると `cvrider-macos.zip` が落ちてきます）:**
+---
+
+# 方法 A: ターミナルに 1 回貼り付ける（おすすめ・最短）
+
+1. **ターミナル** を開く（Spotlight で `⌘ + スペース` → `ターミナル` と入力 → Enter）。
+2. 次の 1 行をコピーして、ターミナルに貼り付け、**Enter**。
+
+```bash
+cd ~/Downloads && curl -fL -o cvrider-macos.zip https://github.com/yossy-netizen/atoz-journal/releases/download/cvrider-latest/cvrider-macos.zip && rm -rf cvrider-macos && ditto -x -k cvrider-macos.zip . && cd cvrider-macos && chmod +x install-mac.sh && ./install-mac.sh .
+```
+
+これだけで「ダウンロード → 展開 → AU / VST3 の配置 → 署名 → Apple の検証（auval）」まで自動で進みます。
+Finder で探したり、ダブルクリックしたりする必要はありません。
+
+3. 最後に次のように出れば成功です。
+
+```
+installed ~/Library/Audio/Plug-Ins/Components/CV Rider.component
+installed ~/Library/Audio/Plug-Ins/VST3/CV Rider.vst3
+--- auval ---
+...
+* * PASS
+```
+
+`* * PASS` が出たら **「4. Logic Pro で開く」** へ進んでください。
+
+> うまくいかないときは、ターミナルに出た内容をそのままコピーしてご連絡ください。
+> 途中で止まっても、プラグインフォルダ以外は何も変更していません。
+
+> 補足: Mac 上で Claude Code（ターミナルの `claude` コマンド）を使っている場合は、
+> その画面で「上のコマンドを実行して」と伝えるだけでも同じことができます。
+
+---
+
+# 方法 B: Finder でダブルクリックする
+
+## B-1. ダウンロードする
+
+**直接リンク（クリックすると `cvrider-macos.zip` が落ちてきます）:**
 
 https://github.com/yossy-netizen/atoz-journal/releases/download/cvrider-latest/cvrider-macos.zip
 
-- Safari で開くと、通常は「ダウンロード」フォルダ（Finder の左側「ダウンロード」、Dock 右端のスタック）に保存されます。
+- Safari で開くと、通常は「ダウンロード」フォルダに保存されます。
+  Finder の左サイドバーの「ダウンロード」、または Dock の右端にあるフォルダのアイコン（ダウンロードスタック）から開けます。
+- 見つからないときは Finder のメニューバー **「移動」→「ダウンロード」**（`⌥ + ⌘ + L`）。
 - 一覧ページ（更新日やメモを見たいとき）: https://github.com/yossy-netizen/atoz-journal/releases/tag/cvrider-latest
 
-## 2. 展開する
+## B-2. 展開する
 
 1. Finder で「ダウンロード」を開く。
 2. `cvrider-macos.zip` を **ダブルクリック** → 同じ場所に `cvrider-macos` フォルダができる。
@@ -33,39 +75,23 @@ https://github.com/yossy-netizen/atoz-journal/releases/download/cvrider-latest/c
 | `install-mac.sh` | インストーラ本体（.command から呼ばれる） |
 | `README-INSTALL.txt` | この手順の短縮版 |
 
-## 3. インストールする（ダブルクリック 1 回）
+## B-3. インストールする（ダブルクリック 1 回）
 
 1. `Install CV Rider.command` を **ダブルクリック**。ターミナルが開いて処理が進みます。
-2. 次のように出れば成功です。
-
-```
-installed ~/Library/Audio/Plug-Ins/Components/CV Rider.component
-installed ~/Library/Audio/Plug-Ins/VST3/CV Rider.vst3
---- auval ---
-...
-* * PASS
-=== インストール完了 ===
-```
-
-3. Enter キーでウィンドウを閉じます。
+2. 方法 A と同じく `* * PASS` と `=== インストール完了 ===` が出れば成功。Enter キーで閉じます。
 
 ### 「開発元を確認できないため開けません」と出たとき
 
-インターネットから落としたファイルには macOS が「隔離」マークを付けるので、初回だけ止められることがあります。
-どちらかの方法で通してください。
+ブラウザから落としたファイルには macOS が「隔離」マークを付けるので、初回だけ止められます。
+どちらかの方法で通してください（方法 A ならこのダイアログは出ません）。
 
-- **方法 A（おすすめ）**: `Install CV Rider.command` を **右クリック（または control キーを押しながらクリック）→「開く」→ 表示されるダイアログでもう一度「開く」**。
-- **方法 B**: システム設定 → **プライバシーとセキュリティ** → 下のほうにある「"Install CV Rider.command" は開発元を確認できないため…」の横の **「このまま開く」** → Touch ID / パスワード。
+- **方法 B-a（おすすめ）**: `Install CV Rider.command` を **右クリック（または control キーを押しながらクリック）→「開く」→ 表示されるダイアログでもう一度「開く」**。
+- **方法 B-b**: システム設定 → **プライバシーとセキュリティ** → 下のほうにある「"Install CV Rider.command" は開発元を確認できないため…」の横の **「このまま開く」** → Touch ID / パスワード。
 
 インストーラは、プラグイン本体の隔離マークも自動で外し、この Mac 用の簡易署名（アドホック署名）を付けます。
 これは自分の Mac で使う分には十分で、Apple の Developer ID 署名は不要です。
 
-### ターミナルを使いたい場合（同じことを手で行う）
-
-```bash
-cd ~/Downloads/cvrider-macos
-chmod +x install-mac.sh && ./install-mac.sh .
-```
+---
 
 ## 4. Logic Pro で開く
 
@@ -106,8 +132,9 @@ chmod +x install-mac.sh && ./install-mac.sh .
 
 ## 6. 別の Mac（Mac mini など）へも入れるとき
 
-同じ zip を持っていき、同じ手順で `Install CV Rider.command` をダブルクリックするだけです
-（AirDrop や USB で `cvrider-macos` フォルダを丸ごとコピーしても構いません）。
+その Mac で **方法 A の 1 行を貼り付ける** だけです。
+（オフラインの Mac に入れるときは、AirDrop や USB で `cvrider-macos` フォルダを丸ごとコピーし、
+中の `Install CV Rider.command` をダブルクリックしてください。）
 
 ## 7. アンインストール
 
@@ -120,5 +147,5 @@ Finder で次の 2 つをゴミ箱へ入れ、Logic を再起動します。
 
 ## 8. 新しいビルドに更新するとき
 
-1 の直接リンクからもう一度ダウンロードし、3 の手順を繰り返すだけです（古いものは自動で置き換えます）。
-更新内容は [CHANGELOG.md](CHANGELOG.md) に書いてあります。
+**方法 A の 1 行をもう一度貼り付けるだけ**です（古いものは自動で置き換えます）。
+リンクは常に最新ビルドを指しています。更新内容は [CHANGELOG.md](CHANGELOG.md) に書いてあります。

@@ -79,11 +79,21 @@ CV Rider の中には、この 2 人の先生（＝**ライダー**）がいて�
 
 ## 3.5 パソコンに入れる（Mac / Logic Pro）
 
-1. このリンクをクリックしてダウンロード: https://github.com/yossy-netizen/atoz-journal/releases/download/cvrider-latest/cvrider-macos.zip
-2. 「ダウンロード」フォルダの `cvrider-macos.zip` をダブルクリックして展開（ふくらませる）。
-3. できたフォルダの中の **「Install CV Rider.command」をダブルクリック**。黒い画面（ターミナル）が開いて勝手に進み、「インストール完了」と出たら Enter。
-   - 「開発元を確認できない」と言われたら: そのファイルを **右クリック → 開く → 開く**。
-4. Logic Pro を起動し直して、ボーカルトラックの **Audio FX → Audio Units → AtoZ Studio → CV Rider**。
+**いちばん簡単な方法**（コピー＆ペースト 1 回）:
+
+1. **ターミナル** を開く（`⌘ + スペース` を押して `ターミナル` と入力 → Enter）。
+2. 下の 1 行をコピーしてターミナルに貼り付け、**Enter** を押す。
+
+```bash
+cd ~/Downloads && curl -fL -o cvrider-macos.zip https://github.com/yossy-netizen/atoz-journal/releases/download/cvrider-latest/cvrider-macos.zip && rm -rf cvrider-macos && ditto -x -k cvrider-macos.zip . && cd cvrider-macos && chmod +x install-mac.sh && ./install-mac.sh .
+```
+
+3. `* * PASS` と出れば成功。Logic Pro を起動し直して、
+   ボーカルトラックの **Audio FX → Audio Units → AtoZ Studio → CV Rider**。
+
+「ターミナルは怖い」という場合は、Finder でダブルクリックする方法もあります（[logic-setup.md](logic-setup.md) の方法 B）。
+ただしその場合は「開発元を確認できません」という警告を 1 回通す必要があります。
+上のターミナルの方法なら、その警告は出ません。
 
 もっと詳しい手順（つまずいたとき用）: [logic-setup.md](logic-setup.md)
 

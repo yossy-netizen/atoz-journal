@@ -113,9 +113,16 @@ gain[dB] = c·(gc + TrimC) + (1 − c)·(gv + TrimV) + Output
 ### macOS（テスト運用 → 本番）
 
 **ビルド済みを使う（推奨）** — 詳細は [logic-setup.md](logic-setup.md)
-1. https://github.com/yossy-netizen/atoz-journal/releases/download/cvrider-latest/cvrider-macos.zip をダウンロード（CI が `push` のたびに更新する rolling pre-release `cvrider-latest`）
-2. zip をダブルクリックで展開 → `Install CV Rider.command` をダブルクリック
-3. DAW を再起動（Logic: 設定 → プラグインマネージャー → リセット & 再スキャン）
+
+ターミナルに 1 行貼るだけ（`curl` 経由のダウンロードには quarantine 属性が付かないので Gatekeeper のダイアログが出ない）:
+
+```bash
+cd ~/Downloads && curl -fL -o cvrider-macos.zip https://github.com/yossy-netizen/atoz-journal/releases/download/cvrider-latest/cvrider-macos.zip && rm -rf cvrider-macos && ditto -x -k cvrider-macos.zip . && cd cvrider-macos && chmod +x install-mac.sh && ./install-mac.sh .
+```
+
+Finder 派は zip をダブルクリックで展開 → `Install CV Rider.command` をダブルクリック（初回のみ Gatekeeper を通す）。
+どちらの場合も最後に DAW を再起動する（Logic: 設定 → プラグインマネージャー → リセット & 再スキャン）。
+zip は rolling pre-release `cvrider-latest` に CI が `push` のたびに再アップロードする。
 
 zip は `ditto` で作成（実行ビット・シンボリックリンク・署名を保持）。`install-mac.sh` は AU / VST3 / Standalone をコピーし、実行ビットを復元、隔離属性（`com.apple.quarantine`）を除去、アドホック署名、`auval -v aufx Cvrd AtoZ` を実行する。Actions の Artifacts にも同じ zip が `cvrider-macos` として残る。
 

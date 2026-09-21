@@ -5,6 +5,10 @@
 ## 0.2.1 — 2026-09-21
 
 ### 追加
+- **ターミナルに 1 行貼るだけのインストール**を全ドキュメントの第一手順に採用。`curl` で取得したファイルには
+  quarantine 属性が付かないため、Gatekeeper の「開発元を確認できません」ダイアログが一切出ない（Finder からの
+  ダウンロードでは出る）。ダウンロード → 展開 → 配置 → 署名 → `auval` までが 1 コマンドで完結する。
+  Linux 上で macOS 固有コマンドをスタブ化した通し実行で、配置先と実行ビットの保持を検証済み。
 - **ワンクリック配布**: CI が `push` のたびに GitHub Releases の rolling pre-release `cvrider-latest` を更新。固定リンク
   https://github.com/yossy-netizen/atoz-journal/releases/download/cvrider-latest/cvrider-macos.zip からブラウザで直接ダウンロードできる（Actions のログイン画面を経由しない）。
 - **ダブルクリックでインストール**: zip に `Install CV Rider.command` を同梱。ターミナル操作なしで AU / VST3 の導入、隔離解除、署名、`auval` まで実行。
