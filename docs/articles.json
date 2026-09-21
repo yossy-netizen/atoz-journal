@@ -1,5 +1,16 @@
 [
  {
+  "slug": "taste-series-01",
+  "title": "音楽を本当に味わうために",
+  "date": "2026-09-21",
+  "tags": [
+   "聴き方・味わい方",
+   "学び方・上達法"
+  ],
+  "series": "「音楽を本当に味わうために」シリーズ",
+  "source_file": "taste_series_01_v4.md"
+ },
+ {
   "slug": "practical-recording-levels",
   "title": "宅録の際のレベル管理のコツ ― エレキベースで学ぶ、3つの変数の組み合わせ",
   "date": "2026-09-17",
