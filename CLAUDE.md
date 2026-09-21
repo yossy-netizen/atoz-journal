@@ -14,6 +14,10 @@
 往復評価（音符の recall / precision、ビブラートのレート誤差、イントネーション誤差）が
 悪化していないことを確認する。`tests/test_docs.py` がマニュアルとコマンドの食い違いを検出する。
 
+`pitch-trace/docs/feedback/` は実機（Mac mini / Mac Studio）側の作業者が書く場所なので、
+開発側からは書き込まない。同じブランチを共有しても内容が衝突しないようにするための取り決め。
+実機側への依頼内容は `pitch-trace/docs/HANDOFF.md` にまとめる。
+
 文書は日本語で書く。専門用語を初出で使うときは一言の説明を添える。
 
 ## サイト（AtoZ Sound Journal）
