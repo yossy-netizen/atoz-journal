@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI合議 共有ページ</title>
+<style>
+  :root { --bg:#faf8f4; --fg:#2b2a27; --muted:#6b675f; --line:#e3ddd2; --accent:#7a5c2e; --card:#ffffff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1e1c19; --fg:#ece7de; --muted:#a39d92; --line:#3a3630; --accent:#d3b07a; --card:#26231f; } }
+  body { margin:0; padding:16px; background:var(--bg); color:var(--fg); font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; line-height:1.7; }
+  main { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 1.35rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: .9rem; margin-bottom: 20px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  h2 { font-size: 1.05rem; margin: 0 0 10px; color: var(--accent); }
+  table { width:100%; border-collapse: collapse; font-size: .95rem; }
+  th, td { text-align:left; padding: 6px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+  .tag { display:inline-block; padding: 1px 8px; border-radius: 999px; font-size: .8rem; border:1px solid var(--line); color: var(--muted); }
+  .how ol { padding-left: 1.2em; margin: 0; }
+  footer { color: var(--muted); font-size: .8rem; margin-top: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>AI合議 共有ページ</h1>
+  <div class="sub">更新：{{更新日時}}（AI合議制2.0 事務局が自動生成）</div>
+
+  <section>
+    <h2>今週の議題</h2>
+    <table>
+      <tr><th>議題</th><th>状態</th><th>採決期限</th></tr>
+      <!-- 議題ごとに1行 -->
+      <tr><td>{{議題タイトル}}</td><td><span class="tag">{{状態}}</span></td><td>{{期限}}</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>各将の要旨（1行ずつ）</h2>
+    <table>
+      <tr><th>馬良</th><td>{{要旨}}</td></tr>
+      <tr><th>趙雲</th><td>{{要旨}}</td></tr>
+      <tr><th>張飛</th><td>{{要旨}}</td></tr>
+      <tr><th>関羽</th><td>{{要旨}}</td></tr>
+      <tr><th>諸葛亮（C案）</th><td>{{C案の要旨}}</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>決定したこと・返答</h2>
+    <p>{{直近の採決（承認／差戻し…）と、阿藤さんからの返答の要点。詳細は 01_お知らせ／03_これまでの決定}}</p>
+  </section>
+
+  <section class="how">
+    <h2>ご意見の出し方</h2>
+    <ol>
+      <li><b>02_ご意見</b> フォルダに、テキスト（.txt／.md）か音声メモを置くだけです。</li>
+      <li>先頭に「議題：（議題名。無ければ空欄）」、次の行から本文を書いてください。雛形は <b>_投稿テンプレ.md</b>。</li>
+      <li>日曜の夜に事務局が回収し、原文のまま会議に添えます。金曜にこのページと <b>01_お知らせ</b> が更新されます。</li>
+    </ol>
+  </section>
+
+  <footer>契約の金額や生徒個人の情報は、このページにも投稿にも書かない運用です。</footer>
+</main>
+</body>
+</html>
