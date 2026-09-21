@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.atoz.council-bakin-cursor</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/yoshifumiato/Documents/Claude/Scheduled/council-bakin-cursor/run.sh</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict><key>Weekday</key><integer>4</integer><key>Hour</key><integer>6</integer><key>Minute</key><integer>0</integer></dict>
+  <key>EnvironmentVariables</key>
+  <dict><key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string></dict>
+  <key>StandardOutPath</key><string>/Users/yoshifumiato/Documents/Claude/Scheduled/council-bakin-cursor/logs/launchd.out</string>
+  <key>StandardErrorPath</key><string>/Users/yoshifumiato/Documents/Claude/Scheduled/council-bakin-cursor/logs/launchd.err</string>
+</dict>
+</plist>
