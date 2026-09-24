@@ -229,6 +229,154 @@
       "review_report_sent": "2026-08-27",
       "verdict": "公開推奨",
       "report_summary": "個人情報なし（source_note記載の通りプロ向け授業テーマを一般化済み）。第一声肯定（「足したくなる気持ちは、正しい」と読者の衝動を先に承認）・原則1と整合（カウント・ベイシー/マイルス・デイヴィス/日本の「間」等、歴史・文化への敬意）。原則2との対応はやや緩やかだが許容範囲。事実関係: ベイシーの寡黙なピアノ、マイルスの間、能・水墨画・生け花の「間」の記述はいずれも一般的知識として正確。リンクプレースホルダーなし・著者表記/文体はガイドライン準拠。SEO要件OK（description良質・タグ3件）。約2,600字。シリーズ外の単発記事として完成度が高い。"
+    },
+    {
+      "source_file": "2026-08-25_about_atoz_sound_journal.md",
+      "drive_file_id": "1HfS_Qd5xDPxpm7ivR4O3qhhBBcBiNO26",
+      "title": "ようこそ、AtoZ Sound Journal へ",
+      "review_report_sent": "2026-09-24",
+      "verdict": "公開推奨",
+      "report_summary": "第一声「音楽が好きで、ここへたどり着いてくださったのだと思います。まずは、ようこそ。」＝肯定で開始（原則7）。個人情報なし（スタジオ／スクールへの言及は一般化の範囲で、生徒名・特定可能なエピソードは無し）。事実関係に危うい断定なし。フロントマター完備（description 約124字、タグ2件はいずれも推奨語彙）。著者表記 AZ / AtoZ Studio・フッター2行とも規定どおり。本文約3,900字で規定内。留意2点: ①本文で原則7（第一声の肯定）を明言しているが principles: [1, 5, 6] に7が含まれていない（追加を検討）②「近いうちに『8つの原則』のお話も」と予告しているため、8原則記事（A-2）より先に公開するのが自然。SEOはブランド名寄りで検索流入は弱いが、サイト案内記事としては妥当。"
+    },
+    {
+      "source_file": "2026-08-25_wavetable_synth_story.md",
+      "drive_file_id": "1UTSB7jqUBDWF2HPc2L4VaeAS204s5DIS",
+      "title": "伸ばした音の、その先へ ― 音色が動くシンセ、ウェーブテーブルの物語",
+      "review_report_sent": "2026-09-24",
+      "verdict": "公開推奨",
+      "report_summary": "第一声「シンセのプリセット選び、楽しいですよね。」＝肯定。個人情報なし（source_note に「プロ向け授業のテーマを一般化。個人情報・個別事例は含まない」と明記され、本文も準拠）。事実関係は年号・固有名詞を全点確認して誤りなし: Minimoog 1970年／ヴォルフガング・パーム（西ドイツ・ハンブルクのPPG）／PPG Wave 2.2 1982年／Waldorf への技術継承／Prophet VS 1986年・ベクターシンセシス／KORG Wavestation 1990年・ウェーブシーケンス／NI Massive 2007年／Xfer Serum 2014年／Roland JP-8000「スーパーソー」90年代後半／Tangerine Dream・Thomas Dolby。タグ3件とも推奨語彙、description も良質。著者表記・フッター・文体すべて規定どおり。本文約3,000字。修正指摘なし。"
+    },
+    {
+      "source_file": "2026-08-26_eight_principles_declaration.md",
+      "drive_file_id": "1Zce_3M27f9LU0Wpefh0u93kRvpgZ2xn0",
+      "title": "私たちが信じていること ― AtoZ Sound Journal の8原則",
+      "review_report_sent": "2026-09-24",
+      "verdict": "公開推奨",
+      "report_summary": "哲学整合を Drive 原本（01-1 の AtoZ_哲学根幹原則_v1.md）と突合して確認: 8原則の見出しと一行要約、3軸構造（世界観の軸＝原則1／内なる軸＝2・3・6／外なる軸＝4・5・7・8）、全体を貫く一本の糸「AI時代における人間性の保護と発展」がいずれも原本と一致（「極上から大衆ジャンクまで」等を全文検索で照合）。第一声「いま、音楽を作ること・聴くことは、歴史上もっとも自由になっています。」＝肯定。個人情報なし（実名言及は公人のみ: デミング／スティーブ・ジョブズ／是枝裕和。原則6のモニター事例はエンジニア実名を出さず一般化しており安全側）。タグ4件・description とも良好。本文約4,200字。留意1点: 冒頭で「ようこそ、AtoZ Sound Journal へ」をタイトル参照しているため、A-1 を先に公開し、公開時に相互リンクを張るのが望ましい（「(リンク)」プレースホルダーは無し）。"
+    },
+    {
+      "source_file": "2026-09-09_bunmei_kaika_gungaku.md",
+      "drive_file_id": "1oDRZBTtlChRuR49zfIdY1wZTIuq0ohcx",
+      "title": "文明開化でやって来たのは、クラシックではなく軍楽だった ― 日本のポップスの意外な起点",
+      "review_report_sent": "2026-09-24",
+      "verdict": "要修正（軽微）",
+      "report_summary": "第一声「日本の音楽には、日本らしい良さが確かにあります。」＝肯定で、原則7の観点では5本中もっとも良い立ち上がり。個人情報なし（source_note に「講義パートの論点のみ抽出」と明記）。事実関係は広範に正確: 1853年ペリー浦賀来航／軍楽の先行導入／J.W.フェントンが薩摩藩の若者を指導し『君が代』初版を作曲／ウクレレはマデイラ島移民の撥弦楽器が起源・ハワイアンコアで製作・王室に愛される／米ポピュラー音楽の軍楽＋西アフリカ＋カリブ海起源／スカの軍楽隊由来／演歌の語源＝演説歌／『東京ラプソディ』1936年・歌 藤山一郎・作曲 古賀政男と歌詞の固有名詞（銀座の柳／ニコライ堂／ジャズの浅草）／戦後の進駐軍向け演奏からロカビリー／70〜80年代の研究対象（レッキング・クルー、スタッフ、TOTO、フォスター一派、カーペンターズ）。要修正3点: ①「おっぺけぺー節」の表記——通行の表記（本文が言う教科書でも）は片仮名「オッペケペー節」。表記を合わせたい（川上音二郎の名を添えるとより明確）②「パリ万博の際に実際に録音が残されていて」——現存する1900年の録音は渡欧巡業中にロンドンで行われたもの。「1900年のパリ万博巡業中に、ロンドンで録音され」と補うと正確 ③『君が代』が「日本人の手で作り直され」——旋律は林広守らによる日本人の手だが、和声づけ・吹奏楽編曲はドイツ人フランツ・エッケルト。補うとより正確になり、記事の主題（外から来ている）も強まる。軽微: 「1989年に『J-POP』という呼び名が生まれ」は1988年のJ-WAVE開局時起源説が有力（「1988〜89年頃」と幅を持たせると安全）。本文約4,800字で規定上限（5,000字）に近い最長級。ヘッダーにコーナー名が無い（上記④と同様）。"
+    },
+    {
+      "source_file": "2026-09-09_oni_ni_kanabo_ai_era.md",
+      "drive_file_id": "1rsDApVXyVrWxwFGvCVFd_9RPgo9VsNe5",
+      "title": "「鬼に金棒」の、鬼のほう ― AIの時代に、完成像が先にあるということ",
+      "review_report_sent": "2026-09-24",
+      "verdict": "公開推奨（軽微な提案あり）",
+      "report_summary": "第一声は見出しから「『AIで曲ができちゃう』は、わくわくしていい」＝肯定。個人情報なし（source_note に「個別の受講者・課題には触れず、講義パートの論点のみ抽出」と明記され、本文も準拠）。事実関係（ポップス史150年の年代区分／70年代シンセ・80年代ドラムマシン・2000年代DAW・2010年代AI研究→2020年代生成）に誤りなし。原則1の文言「人間のストーリー、活動の変遷、歴史、文化の積み上げ」を原本どおり引用。タグ4件・description とも良好、本文約4,200字。提案3点: ①実名商品「うまい棒」について「野菜サラダ味に野菜もサラダも入っていない」と原材料を断定している（原材料表記は商品改訂で変わりうるため「フレーバー主体で」等に和らげると安全。喩えの力は保てる）②「たこ焼き味のスナック菓子」の喩えが A-1「ようこそ、AtoZ Sound Journal へ」と重複するため、公開間隔を空けるか相互参照すると自然 ③記事ヘッダーが「**AtoZ Sound Journal**」のみでコーナー名が無い（他記事は「AtoZ Sound Journal ｜ 〜」形式）。"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_01_erase_the_music.md",
+      "drive_file_id": "1fdG5hXtlcwgBUqPr73YG02O9mkY1g5SF"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_02_below_zero.md",
+      "drive_file_id": "1kI_t68gTCzmmdzwB5bP6Sm-USa23pV_D"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_03_unnoticed.md",
+      "drive_file_id": "1XCX0439x3QDUDs-BY7rQOYq5D-7ybTpB"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_04_emotion_curve.md",
+      "drive_file_id": "1yamfuGxTomtWR5Pz0l7BgvjDzcT6dOKC"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_05_amplify_not_create_v2.md",
+      "drive_file_id": "1c9HnJT5UX7jMoVqs1Flzb8sAmQHAvujz"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_06_shared_language_v2.md",
+      "drive_file_id": "1rj-wgJ-d8emJps1gmmijLYt2TJotbsDS"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_01_who_is_there.md",
+      "drive_file_id": "1dTSeIuAbg3jWfJT7pcYUvDei1GdfL_ee"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_02_workflow.md",
+      "drive_file_id": "1r1W6RdtoHw9zn3t6ZEfUO_77DM4u4PB_"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_03_spotting.md",
+      "drive_file_id": "1m18qBIzD-fk7XHjDWU6fg5wzL8y7gsn9"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_04_temp_track.md",
+      "drive_file_id": "1wlW_w1XftiwCCqCcnRFqqqX7MsVclNPg"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_05_running_time.md",
+      "drive_file_id": "1vs9uZaMJJnQ_v6mV_xxsirCZ8zx4rZ9R"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_06_dubbing_ma.md",
+      "drive_file_id": "199Rbrq7QKmVF5Ng9sFMvAD4ROFk8S7M-"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_07_stems.md",
+      "drive_file_id": "1V_MxyqdJaSQGL_xCdcw8K9o0u2D7s7nx"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_08_sfx_and_music.md",
+      "drive_file_id": "1HYMJ9LK9TudBVNKQ6OqKidrYKay_X0CV"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_09_media_differences.md",
+      "drive_file_id": "1pda6FmwUkrUbc7LCcDi4_Em9nZaKh0KX"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_10_fifteen_seconds.md",
+      "drive_file_id": "1IPzX7GnB4t53pTZIZEow-EO55oTxW3Wn"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_11_glossary.md",
+      "drive_file_id": "1pLnNeVqF4mTC5GbQTmB3jpJrdCAh8VuJ"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_01_before_the_witness.md",
+      "drive_file_id": "1AIsIANHNFEItQSVBYKhfrXENI8rN4i7V"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_02_dont_hit_every_move.md",
+      "drive_file_id": "1wK7TAjUJPxA3le0TVRCxKbVQToQjHnc2"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_03_foreshadowing_and_flags.md",
+      "drive_file_id": "1ZM3boTlFdnIuGm8b9LmhNSMHhhjhM6SC"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_04_leitmotif.md",
+      "drive_file_id": "1N8VRr1jWOm58mdLiq8QwhqA4FGVzb9s9"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_05_harmonic_texture.md",
+      "drive_file_id": "1awXIUuKB9SMBDxq4wTgh0YnrMT45PtCC"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_06_thick_or_thin.md",
+      "drive_file_id": "15lcCa36kMR-3uCp997n3VDNnAQVmOuuP"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_07_no_such_thing_as_attack_point.md",
+      "drive_file_id": "1mqXyrQNAbwTOVfbMzEvNgiiqUIoj5OUK"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_08_low_end_acting.md",
+      "drive_file_id": "1iiF9y9Z9ofb2mITvLhL6CrrayO0VKUV6"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_09_choosing_instruments.md",
+      "drive_file_id": "1pk1yAosEMt4_H7rwm31590aXa01iI_-N"
+    },
+    {
+      "source_file": "2026-09-13_maamaa_shokunin_verbalize_success.md",
+      "drive_file_id": "1cAB1mcKchTMqIZhyge-0udXNqs6T_o1V"
     }
   ]
 }
