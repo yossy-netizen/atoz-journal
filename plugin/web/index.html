@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CV Rider — 子音/母音ライダー（Web版）</title>
+<style>
+  :root {
+    --bg: #14161a; --panel: #1e2126; --panel-2: #262a31; --line: #343941;
+    --text: #e8eaee; --muted: #9aa1ab; --vowel: #55aaff; --cons: #ff9a3c; --ok: #4cd28a; --warn: #ff5c5c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h1 small { font-size: 13px; color: var(--muted); font-weight: normal; margin-left: 8px; }
+  p.lead { color: var(--muted); margin: 0 0 20px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+  .panel h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+  .panel h2 .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  button, select, input[type=file]::file-selector-button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 7px 12px; font: inherit; cursor: pointer;
+  }
+  button:hover { border-color: #5a626e; }
+  button.primary { background: #2a63b8; border-color: #2a63b8; }
+  button:disabled { opacity: .45; cursor: default; }
+  label.check { display: inline-flex; align-items: center; gap: 6px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+  .param { display: grid; grid-template-columns: 120px 1fr 72px; gap: 10px; align-items: center; margin: 6px 0; }
+  .param label { color: var(--muted); }
+  .param output { text-align: right; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; accent-color: #7aa7e0; }
+  .vowel input[type=range] { accent-color: var(--vowel); }
+  .cons input[type=range] { accent-color: var(--cons); }
+  .meter { position: relative; height: 22px; border-radius: 6px; background: #0f1114; border: 1px solid var(--line); overflow: hidden; }
+  .meter .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, var(--vowel), var(--cons)); transition: width 40ms linear; }
+  .meter .lbl { position: absolute; inset: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 8px; font-size: 12px; color: #fff; mix-blend-mode: difference; }
+  .readout { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+  .readout div { background: var(--panel-2); border-radius: 7px; padding: 6px 10px; }
+  .readout b { display: block; font-size: 11px; color: var(--muted); font-weight: normal; }
+  .readout span { font-size: 18px; font-variant-numeric: tabular-nums; }
+  canvas { width: 100%; height: 160px; display: block; background: #0f1114; border: 1px solid var(--line); border-radius: 8px; margin-top: 10px; }
+  .status { color: var(--muted); font-size: 12px; }
+  .status.err { color: var(--warn); }
+  .legend { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 10px; vertical-align: -1px; }
+  details { color: var(--muted); font-size: 13px; }
+  details summary { cursor: pointer; color: var(--text); }
+  code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>CV Rider <small>子音と母音を別々にライドする Vocal Rider 系プラグイン（Web Audio 版）</small></h1>
+  <p class="lead">入力を「子音（無声・摩擦・破裂）」と「母音（有声）」に分類し、それぞれ独立したターゲット / レンジ / 速度でレベルを自動ライドします。DAW 用の JUCE 版と同じ DSP コアを AudioWorklet に移植したデモです。</p>
+
+  <section class="panel">
+    <h2>ソース</h2>
+    <div class="row">
+      <input type="file" id="file" accept="audio/*">
+      <button id="btnTest">テスト信号（母音 → 子音）</button>
+      <button id="btnMic">マイク入力</button>
+      <button id="btnPlay" class="primary" disabled>▶ 再生</button>
+      <button id="btnStop" disabled>■ 停止</button>
+      <label class="check"><input type="checkbox" id="loop" checked> ループ</label>
+      <button id="btnExport" disabled>⤓ 書き出し (WAV 24bit)</button>
+      <label class="check">プリセット <select id="preset"></select></label>
+      <span class="status" id="status">ファイルを選ぶか、テスト信号を押してください。</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>検出</h2>
+    <div class="meter"><div class="fill" id="cFill"></div><div class="lbl"><span>母音</span><span>子音</span></div></div>
+    <div class="readout">
+      <div><b>入力レベル</b><span id="mLevel">–</span></div>
+      <div><b>母音ゲイン</b><span id="mGv">–</span></div>
+      <div><b>子音ゲイン</b><span id="mGc">–</span></div>
+      <div><b>適用ゲイン</b><span id="mG">–</span></div>
+    </div>
+    <canvas id="scope" width="1000" height="160"></canvas>
+    <div class="legend"><i style="background:var(--cons)"></i>子音確率 c<i style="background:var(--vowel)"></i>適用ゲイン (±12 dB)<i style="background:#666"></i>入力レベル (−60…0 dB)</div>
+  </section>
+
+  <div class="grid">
+    <section class="panel vowel">
+      <h2><span class="dot" style="background:var(--vowel)"></span>母音ライダー</h2>
+      <div id="vowelParams"></div>
+    </section>
+    <section class="panel cons">
+      <h2><span class="dot" style="background:var(--cons)"></span>子音ライダー</h2>
+      <div id="consParams"></div>
+    </section>
+    <section class="panel">
+      <h2>検出器</h2>
+      <div id="detParams"></div>
+    </section>
+    <section class="panel">
+      <h2>出力</h2>
+      <div id="outParams"></div>
+      <div class="param"><label for="monitor">モニター</label>
+        <select id="monitor"><option value="0">通常</option><option value="1">子音だけを聴く</option><option value="2">母音だけを聴く</option></select><span></span></div>
+      <div class="param"><label for="bypass">バイパス</label><label class="check"><input type="checkbox" id="bypass"> 無効化</label><span></span></div>
+      <div class="row" style="margin-top:8px"><button id="btnReset">初期値に戻す</button></div>
+    </section>
+  </div>
+
+  <details class="panel">
+    <summary>使い方のヒント</summary>
+    <ol>
+      <li><b>モニター → 子音だけを聴く</b> にして、<b>感度</b> と <b>分割周波数</b> を調整し、サ行・タ行・ハ行だけが聞こえる状態を作ります。</li>
+      <li>モニターを通常に戻し、<b>母音ターゲット</b> をボーカルの狙いレベル（例 −18 dB）に、<b>子音ターゲット</b> をその 4〜8 dB 下に置きます。</li>
+      <li>耳障りな歯擦音は <b>子音トリム</b> で静的に下げ、逆に子音が埋もれる歌い手なら上げます。母音側のライドには影響しません。</li>
+      <li>子音の頭が削れる場合は <b>ルックアヘッド</b> を増やします（その分レイテンシが増えます）。</li>
+    </ol>
+    <p>AudioWorklet を使うため、<code>file://</code> ではなく HTTP で開いてください（例: <code>python3 -m http.server</code>）。</p>
+  </details>
+</main>
+
+<script>
+const PARAMS = {
+  vowel: [
+    ['vowelTarget',  'ターゲット',   -40, 0,    0.5, -18, 'dB'],
+    ['vowelRange',   'レンジ',       0,   12,   0.5,  6,  'dB'],
+    ['vowelAttack',  'アタック',     1,   500,  1,    60, 'ms'],
+    ['vowelRelease', 'リリース',     10,  2000, 10,   300,'ms'],
+    ['vowelTrim',    'トリム',       -12, 12,   0.5,  0,  'dB'],
+  ],
+  cons: [
+    ['consTarget',   'ターゲット',   -40, 0,    0.5, -24, 'dB'],
+    ['consRange',    'レンジ',       0,   12,   0.5,  6,  'dB'],
+    ['consAttack',   'アタック',     0.1, 50,   0.1,  2,  'ms'],
+    ['consRelease',  'リリース',     5,   500,  5,    40, 'ms'],
+    ['consTrim',     'トリム',       -12, 12,   0.5,  0,  'dB'],
+  ],
+  det: [
+    ['sensitivity',   '感度',         -12, 12,   0.5,  0,    'dB'],
+    ['splitFreq',     '分割周波数',   2000,8000, 100,  4000, 'Hz'],
+    ['idleThreshold', 'アイドル閾値', -80, -20,  1,    -50,  'dB'],
+    ['lookahead',     'ルックアヘッド',0,  10,   0.5,  3,    'ms'],
+  ],
+  out: [
+    ['output', '出力', -24, 24, 0.5, 0, 'dB'],
+  ],
+};
+
+// Factory presets — keep in sync with plugin/cpp/Presets.h (values not listed fall back to the defaults)
+const PRESETS = {
+  'Default':     {},
+  'Lead Vocal':  { vowelTarget: -18, vowelRange: 8, vowelAttack: 40, vowelRelease: 250, consTarget: -24, consRange: 8, consAttack: 1.5, consRelease: 40, consTrim: -1 },
+  'Gentle':      { vowelRange: 4, vowelAttack: 100, vowelRelease: 500, consRange: 3, consAttack: 3, consRelease: 60 },
+  'De-ess Only': { vowelRange: 0, consTarget: -26, consRange: 10, consAttack: 1, consRelease: 30, consTrim: -2, sensitivity: 2 },
+  'Clarity':     { vowelRange: 3, consTarget: -18, consRange: 8, consTrim: 2 },
+  'Breathy':     { sensitivity: -4, splitFreq: 5000, vowelTarget: -20, vowelRange: 6, vowelAttack: 80, vowelRelease: 400, consRange: 4 },
+  'Narration':   { vowelTarget: -20, vowelRange: 10, vowelAttack: 30, vowelRelease: 200, consTarget: -26, consRange: 8 },
+};
+
+const $ = (id) => document.getElementById(id);
+const status = (msg, err = false) => { const s = $('status'); s.textContent = msg; s.className = 'status' + (err ? ' err' : ''); };
+
+let ctx = null, node = null, source = null, buffer = null, micStream = null, playing = false, exportName = 'cvrider.wav';
+const history = { c: [], g: [], l: [] };
+const HISTORY = 500;
+
+function buildParams(containerId, list) {
+  const box = $(containerId);
+  for (const [id, label, min, max, step, def, unit] of list) {
+    const wrap = document.createElement('div'); wrap.className = 'param';
+    wrap.innerHTML = `<label for="${id}">${label}</label><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${def}"><output id="${id}Out"></output>`;
+    box.appendChild(wrap);
+    const input = wrap.querySelector('input'), out = wrap.querySelector('output');
+    const show = () => { out.textContent = `${(+input.value).toFixed(step < 1 ? 1 : 0)} ${unit}`; };
+    input.addEventListener('input', () => { show(); setParam(id, +input.value); });
+    input.dataset.def = def; show();
+  }
+}
+for (const [k, v] of Object.entries({ vowelParams: PARAMS.vowel, consParams: PARAMS.cons, detParams: PARAMS.det, outParams: PARAMS.out })) buildParams(k, v);
+
+function setParam(id, value) {
+  if (!node) return;
+  const p = node.parameters.get(id);
+  if (p) p.setValueAtTime(value, ctx.currentTime);
+}
+function currentParams() {
+  const p = {};
+  document.querySelectorAll('input[type=range]').forEach((el) => { p[el.id] = +el.value; });
+  p.monitor = +$('monitor').value; p.bypass = $('bypass').checked ? 1 : 0;
+  return p;
+}
+function pushAllParams() { for (const [k, v] of Object.entries(currentParams())) setParam(k, v); }
+$('monitor').addEventListener('change', () => setParam('monitor', +$('monitor').value));
+$('bypass').addEventListener('change', () => setParam('bypass', $('bypass').checked ? 1 : 0));
+function applyPreset(name) {
+  const preset = PRESETS[name] || {};
+  document.querySelectorAll('input[type=range]').forEach((el) => {
+    el.value = preset[el.id] !== undefined ? preset[el.id] : el.dataset.def;
+    el.dispatchEvent(new Event('input'));
+  });
+  $('monitor').value = '0'; $('bypass').checked = false; pushAllParams();
+}
+for (const name of Object.keys(PRESETS)) { const o = document.createElement('option'); o.value = name; o.textContent = name; $('preset').appendChild(o); }
+$('preset').addEventListener('change', () => applyPreset($('preset').value));
+$('btnReset').addEventListener('click', () => { $('preset').value = 'Default'; applyPreset('Default'); });
+
+async function ensureContext() {
+  if (ctx) { if (ctx.state === 'suspended') await ctx.resume(); return; }
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  await ctx.audioWorklet.addModule('cv-rider-processor.js');
+  node = new AudioWorkletNode(ctx, 'cv-rider', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
+  node.port.onmessage = (e) => onMeters(e.data);
+  node.connect(ctx.destination);
+  pushAllParams();
+}
+
+function makeTestSignal(fs) {
+  // vowel-like harmonic tone (150 Hz, 8 harmonics) alternating with noise bursts, at two levels
+  const segs = [[0, .3, -80], [1, .8, -30], [2, .15, -30], [1, .8, -12], [2, .15, -12], [0, .3, -80]];
+  const total = segs.reduce((a, s) => a + Math.round(s[1] * fs), 0);
+  const buf = ctx.createBuffer(1, total, fs), data = buf.getChannelData(0);
+  let pos = 0, phase = 0;
+  for (const [kind, sec, db] of segs) {
+    const n = Math.round(sec * fs), amp = Math.pow(10, db / 20);
+    for (let i = 0; i < n; i++) {
+      let v;
+      if (kind === 1) { let s = 0, norm = 0; for (let k = 1; k <= 8; k++) { s += Math.sin(k * phase) / k; norm += 1 / (2 * k * k); } v = s / Math.sqrt(norm) * amp; phase += 2 * Math.PI * 150 / fs; }
+      else if (kind === 2) v = gauss() * amp;
+      else v = gauss() * 1e-4;
+      data[pos++] = v;
+    }
+  }
+  return buf;
+}
+function gauss() { let u = 0, v = 0; while (u === 0) u = Math.random(); while (v === 0) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+
+// Reads the sample rate from a WAV (RIFF/WAVE "fmt ") or AIFF (FORM/AIFF "COMM") header, or null.
+function sniffSampleRate(ab) {
+  const v = new DataView(ab), tag = (o) => String.fromCharCode(v.getUint8(o), v.getUint8(o + 1), v.getUint8(o + 2), v.getUint8(o + 3));
+  if (ab.byteLength < 12) return null;
+  const form = tag(0), type = tag(8);
+  if (form === 'RIFF' && type === 'WAVE') {
+    for (let o = 12; o + 8 <= ab.byteLength;) { const id = tag(o), len = v.getUint32(o + 4, true); if (id === 'fmt ' && o + 12 <= ab.byteLength) return v.getUint32(o + 12, true); o += 8 + len + (len & 1); }
+  } else if (form === 'FORM' && (type === 'AIFF' || type === 'AIFC')) {
+    for (let o = 12; o + 8 <= ab.byteLength;) {
+      const id = tag(o), len = v.getUint32(o + 4);
+      if (id === 'COMM' && o + 26 <= ab.byteLength) { // 80-bit IEEE extended at offset +16
+        const exp = v.getUint16(o + 16) & 0x7fff, hi = v.getUint32(o + 18);
+        return Math.round(hi * Math.pow(2, exp - 16383 - 31));
+      }
+      o += 8 + len + (len & 1);
+    }
+  }
+  return null;
+}
+
+// decodeAudioData resamples to the context's rate, so decode with a context at the file's own rate when known
+async function decodeAtNativeRate(ab) {
+  const rate = sniffSampleRate(ab);
+  if (rate && rate !== ctx.sampleRate && rate >= 8000 && rate <= 192000) {
+    const off = new OfflineAudioContext(1, 1, rate);
+    return off.decodeAudioData(ab);
+  }
+  return ctx.decodeAudioData(ab);
+}
+
+$('file').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    await ensureContext(); stop();
+    buffer = await decodeAtNativeRate(await f.arrayBuffer());
+    status(`${f.name} — ${buffer.duration.toFixed(1)} s / ${buffer.numberOfChannels} ch / ${buffer.sampleRate} Hz`);
+    $('btnPlay').disabled = false; $('btnExport').disabled = false; exportName = f.name.replace(/\.[^.]+$/, '') + '_cvrider.wav';
+  } catch (err) { status('読み込みに失敗しました: ' + err.message, true); }
+});
+$('btnTest').addEventListener('click', async () => {
+  try { await ensureContext(); stop(); buffer = makeTestSignal(ctx.sampleRate); status('テスト信号: 母音(−30) → 子音 → 母音(−12) → 子音'); $('btnPlay').disabled = false; $('btnExport').disabled = false; exportName = 'test_signal_cvrider.wav'; }
+  catch (err) { status(err.message, true); }
+});
+$('btnMic').addEventListener('click', async () => {
+  try {
+    await ensureContext(); stop();
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    source = ctx.createMediaStreamSource(micStream); source.connect(node); playing = true;
+    status('マイク入力中（ヘッドホン推奨）'); $('btnStop').disabled = false; $('btnPlay').disabled = true;
+    node.port.postMessage('reset');
+  } catch (err) { status('マイクを開けませんでした: ' + err.message, true); }
+});
+$('btnPlay').addEventListener('click', async () => {
+  await ensureContext(); stop();
+  source = ctx.createBufferSource(); source.buffer = buffer; source.loop = $('loop').checked;
+  source.connect(node); source.onended = () => { if (playing && !source.loop) stop(); };
+  node.port.postMessage('reset'); source.start(); playing = true;
+  $('btnStop').disabled = false;
+});
+$('btnStop').addEventListener('click', stop);
+function stop() {
+  if (source) { try { source.stop && source.stop(); } catch (_) {} source.disconnect(); source = null; }
+  if (micStream) { micStream.getTracks().forEach((t) => t.stop()); micStream = null; }
+  playing = false; $('btnStop').disabled = true; $('btnPlay').disabled = !buffer;
+}
+
+// Renders `buffer` through the rider offline and returns an AudioBuffer aligned with the input
+// (the lookahead delay is removed so the exported file stays in sync with the original).
+async function renderOffline(buf, params) {
+  const la = Math.round(params.lookahead * 0.001 * buf.sampleRate);
+  const off = new OfflineAudioContext(buf.numberOfChannels, buf.length + la, buf.sampleRate);
+  await off.audioWorklet.addModule('cv-rider-processor.js');
+  const n = new AudioWorkletNode(off, 'cv-rider', { outputChannelCount: [buf.numberOfChannels] });
+  for (const [k, v] of Object.entries(params)) { const prm = n.parameters.get(k); if (prm) prm.value = v; }
+  const src = off.createBufferSource(); src.buffer = buf; src.connect(n); n.connect(off.destination); src.start();
+  const rendered = await off.startRendering();
+  const out = off.createBuffer(buf.numberOfChannels, buf.length, buf.sampleRate);
+  for (let ch = 0; ch < buf.numberOfChannels; ch++) out.copyToChannel(rendered.getChannelData(ch).subarray(la, la + buf.length), ch);
+  return out;
+}
+
+function encodeWav24(buf) {
+  const ch = buf.numberOfChannels, n = buf.length, bytesPerSample = 3, blockAlign = ch * bytesPerSample;
+  const size = n * blockAlign, pad = size & 1;   // RIFF chunks are word-aligned
+  const data = new ArrayBuffer(44 + size + pad), v = new DataView(data);
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, 'RIFF'); v.setUint32(4, 36 + size + pad, true); str(8, 'WAVE');
+  str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, ch, true);
+  v.setUint32(24, buf.sampleRate, true); v.setUint32(28, buf.sampleRate * blockAlign, true);
+  v.setUint16(32, blockAlign, true); v.setUint16(34, 24, true);
+  str(36, 'data'); v.setUint32(40, size, true);
+  const chans = Array.from({ length: ch }, (_, c) => buf.getChannelData(c));
+  let o = 44;
+  for (let i = 0; i < n; i++) for (let c = 0; c < ch; c++) {
+    const x = Math.max(-1, Math.min(1, chans[c][i]));
+    const s = Math.round(x < 0 ? x * 8388608 : x * 8388607);
+    v.setUint8(o++, s & 0xff); v.setUint8(o++, (s >> 8) & 0xff); v.setUint8(o++, (s >> 16) & 0xff);
+  }
+  return new Blob([data], { type: 'audio/wav' });
+}
+
+$('btnExport').addEventListener('click', async () => {
+  if (!buffer) return;
+  const btn = $('btnExport'); btn.disabled = true;
+  try {
+    status('書き出し中…');
+    const out = await renderOffline(buffer, currentParams());
+    const url = URL.createObjectURL(encodeWav24(out));
+    const a = document.createElement('a'); a.href = url; a.download = exportName; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    status(`書き出し完了: ${exportName}（${out.duration.toFixed(1)} s / ${out.numberOfChannels} ch / ${out.sampleRate} Hz）`);
+  } catch (err) { status('書き出しに失敗しました: ' + err.message, true); }
+  btn.disabled = false;
+});
+
+function onMeters(m) {
+  $('cFill').style.width = (m.consonantProb * 100).toFixed(1) + '%';
+  $('mLevel').textContent = m.levelDb.toFixed(1) + ' dB';
+  $('mGv').textContent = (m.vowelGainDb >= 0 ? '+' : '') + m.vowelGainDb.toFixed(1) + ' dB';
+  $('mGc').textContent = (m.consGainDb >= 0 ? '+' : '') + m.consGainDb.toFixed(1) + ' dB';
+  $('mG').textContent = (m.gainDb >= 0 ? '+' : '') + m.gainDb.toFixed(1) + ' dB';
+  history.c.push(m.consonantProb); history.g.push(m.gainDb); history.l.push(m.levelDb);
+  for (const k in history) if (history[k].length > HISTORY) history[k].shift();
+}
+
+const scope = $('scope'), sctx = scope.getContext('2d');
+function drawScope() {
+  const W = scope.width, H = scope.height;
+  sctx.clearRect(0, 0, W, H);
+  sctx.strokeStyle = '#2a2f37'; sctx.lineWidth = 1;
+  for (const y of [0.25, 0.5, 0.75]) { sctx.beginPath(); sctx.moveTo(0, y * H); sctx.lineTo(W, y * H); sctx.stroke(); }
+  const plot = (arr, map, color, fill) => {
+    if (arr.length < 2) return;
+    sctx.beginPath();
+    for (let i = 0; i < arr.length; i++) { const x = W - (arr.length - 1 - i) * (W / HISTORY), y = map(arr[i]); i ? sctx.lineTo(x, y) : sctx.moveTo(x, y); }
+    sctx.strokeStyle = color; sctx.lineWidth = 1.5; sctx.stroke();
+    if (fill) { sctx.lineTo(W, H); sctx.lineTo(W - (arr.length - 1) * (W / HISTORY), H); sctx.closePath(); sctx.fillStyle = fill; sctx.fill(); }
+  };
+  plot(history.l, (v) => H - (Math.max(-60, Math.min(0, v)) + 60) / 60 * H, '#666');
+  plot(history.c, (v) => H - v * H, getComputedStyle(document.documentElement).getPropertyValue('--cons').trim(), 'rgba(255,154,60,.15)');
+  plot(history.g, (v) => H / 2 - Math.max(-12, Math.min(12, v)) / 12 * (H / 2), getComputedStyle(document.documentElement).getPropertyValue('--vowel').trim());
+  requestAnimationFrame(drawScope);
+}
+drawScope();
+</script>
+</body>
+</html>
