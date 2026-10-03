@@ -1,0 +1,50 @@
+name: pitch-trace
+
+on:
+  push:
+    paths:
+      - "pitch-trace/**"
+      - ".github/workflows/pitch-trace.yml"
+  pull_request:
+    paths:
+      - "pitch-trace/**"
+      - ".github/workflows/pitch-trace.yml"
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]   # macos-latest は Apple Silicon
+        python: ["3.11", "3.12"]
+    defaults:
+      run:
+        working-directory: pitch-trace
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install
+        run: python -m pip install -e ".[dev,live,viz]"
+      - name: Test
+        run: python -m pytest -q
+      - name: CLI smoke (demo → analyze → render)
+        run: |
+          pitchtrace profiles
+          pitchtrace demo out --profile alto_sax_jazz --seed 1
+          pitchtrace analyze out/demo_alto_sax_jazz.wav -o out/learned.json --base alto_sax_jazz
+          pitchtrace render out/demo_static.mid out/rerender.mid --profile out/learned.json --mode mpe
+          pitchtrace analyze out/demo_alto_sax_jazz.wav --igf out/ref.igf.json --instrument alto_sax
+          pitchtrace transfer out/ref.igf.json out/demo_static.mid out/transfer.mid --mapping context --wav out/transfer.wav
+          pitchtrace plot out/plot.png --igf out/ref.igf.json --midi out/demo_static.mid --profile alto_sax_jazz
+          pitchtrace ports || true   # ランナーに MIDI デバイスはないが、rtmidi の読み込み確認
+      - name: CLI smoke (doctor / bendcheck)
+        run: |
+          pitchtrace doctor --json out/doctor.json
+          pitchtrace bendcheck out/bendcheck.mid --bend-range 12
+          pitchtrace bendcheck out/bendcheck2.mid --bend-range 2 --note 48 --tempo 100
+      - name: Mac setup script
+        if: runner.os == 'macOS'
+        run: bash scripts/setup_mac.sh --logic
