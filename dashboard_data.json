@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-10-05 09:26 JST",
+ "updated_at": "2026-10-08 09:23 JST",
  "updated_by": "AtoZ Journal 自動投稿",
  "summary": {
   "draft_count": 32
@@ -128,6 +128,11 @@
   }
  ],
  "changelog": [
+  {
+   "date": "2026-10-08",
+   "by": "自動投稿",
+   "event": "定時実行: 【共通処理A】approvals.json（Dashboard・親確認済み／GBP側 Posts の同名ファイルとは別物）の承認13件・修正要望3件はいずれも review_status.json に反映済みで新規取り込みなし。02-1 の最古の未公開記事＝ハーモニーの正体シリーズ 第4回「コードはなぜ「つながって」聞こえるのか ― ボイスリーディングの正体」（harmony_series_04_v4.md）を公開（公開日2026-10-08・/articles/harmony-series-04.html）し、02-2_公開済み へ控えコピー（byte一致14,330・新ID 1_IkNt1WeCKjjRJ-9Ffh0FNHCqFQaRniA）。本文取得は2経路で相互検証: download_file_content（base64）の転記は短い範囲でも複数箇所が破損したため採用せず、read_file_content の正文テキストから復元した本文を正とした。復元ファイルは Drive 原本と byte 一致（14,330／02-1・01-4・02-2 の3現物すべてと一致）、かつ base64 経路の非破損行56/62と完全一致し、不一致6行は date 行（意図した公開日更新）と base64 側の転記破損のみであることを確認。本文は無改変、フロントマターは完備のため date のみ公開日に更新。push成功（コミット 4a784a3、main へ反映）。公開URLの直接検証は本セッションの外部アクセス制約（journal.atoz-studio.com が DNS 解決不可）により未実施で、GitHub Actions の pages build and deployment (run #57) と生成HTMLのtitle一致をもって代替確認。【運用ルールv10 解決ルール2-0.5】02-1 の現物15件と state.json の drive_file_id、dashboard_data.json の pending_review リンク8件（全件 01-4 配下で実ファイル名一致）を突合し、全件一致・更新不要を確認。公開待ち（02-1・未公開）残0本＝承認済み在庫を払い出し完了・判断待ち8本（変更なし）。01-4 の精査レポート未送付は32本で変動なし。要対応: 次回以降の公開には新たな承認（精査レポート→ダッシュボード承認）が必要。"
+  },
   {
    "date": "2026-10-05",
    "by": "自動投稿",
