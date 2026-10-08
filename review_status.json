@@ -229,6 +229,154 @@
       "review_report_sent": "2026-08-27",
       "verdict": "公開推奨",
       "report_summary": "個人情報なし（source_note記載の通りプロ向け授業テーマを一般化済み）。第一声肯定（「足したくなる気持ちは、正しい」と読者の衝動を先に承認）・原則1と整合（カウント・ベイシー/マイルス・デイヴィス/日本の「間」等、歴史・文化への敬意）。原則2との対応はやや緩やかだが許容範囲。事実関係: ベイシーの寡黙なピアノ、マイルスの間、能・水墨画・生け花の「間」の記述はいずれも一般的知識として正確。リンクプレースホルダーなし・著者表記/文体はガイドライン準拠。SEO要件OK（description良質・タグ3件）。約2,600字。シリーズ外の単発記事として完成度が高い。"
+    },
+    {
+      "source_file": "2026-08-25_about_atoz_sound_journal.md",
+      "drive_file_id": "1HfS_Qd5xDPxpm7ivR4O3qhhBBcBiNO26",
+      "title": "ようこそ、AtoZ Sound Journal へ",
+      "review_report_sent": "2026-10-08",
+      "verdict": "公開推奨",
+      "report_summary": "サイト案内（基盤記事A-1）。第一声が肯定（「音楽が好きで、ここへたどり着いてくださったのだと思います。まずは、ようこそ。」）で原則7に適合し、本文で表明する3つの約束が原則7・5・6とそのまま対応。個人情報なし（具体的な生徒・案件の記述は一切なし）。事実関係で要注意の記述なし（たこ焼きの喩えは自社の出汁理論＝内部概念）。SEO: title・description・tags（お知らせ／聴き方・味わい方）いずれも要件充足。著者表記 AZ / AtoZ Studio・フッター2行とも規定どおり。誤字なし。約2,700字で目安下限寄りだが案内記事としては適量。留意: 末尾で「8つの原則」記事を予告しているため、8原則記事（2026-08-26_eight_principles_declaration）と対にし、本記事を先に公開するのが自然。"
+    },
+    {
+      "source_file": "2026-08-25_wavetable_synth_story.md",
+      "drive_file_id": "1UTSB7jqUBDWF2HPc2L4VaeAS204s5DIS",
+      "title": "伸ばした音の、その先へ ― 音色が動くシンセ、ウェーブテーブルの物語",
+      "review_report_sent": "2026-10-08",
+      "verdict": "公開推奨",
+      "report_summary": "原則2（そこにあろうとする＝動く音色）を技術史に落とし込んだ好編。第一声が肯定（「シンセのプリセット選び、楽しいですよね。」）。個人情報なし（source_note でプロ向け授業の一般化を明記、個別事例・受講者の記述なし）。事実関係は全件照合しいずれも正確: Minimoog 1970／ヴォルフガング・パーム（PPG・西ドイツ ハンブルク）／PPG Wave 2.2 1982／Tangerine Dream・Thomas Dolby／PPG の技術が Waldorf へ継承／Prophet VS 1986 ベクター・シンセシス／KORG Wavestation 1990 ウェーブシーケンス／NI Massive 2007／Xfer Serum 2014／Roland JP-8000 スーパーソーは1990年代後半。サンプル音源とシンセの対比も妥当。SEO要件充足、著者表記・フッター・文体ガイドライン準拠。誤字なし。約3,300字。指摘事項なし。"
+    },
+    {
+      "source_file": "2026-08-26_eight_principles_declaration.md",
+      "drive_file_id": "1Zce_3M27f9LU0Wpefh0u93kRvpgZ2xn0",
+      "title": "私たちが信じていること ― AtoZ Sound Journal の8原則",
+      "review_report_sent": "2026-10-08",
+      "verdict": "公開推奨",
+      "report_summary": "基盤記事A-2。AtoZ_哲学根幹原則_v1 と逐条で突き合わせ、8原則の内容・3つの軸（世界観／内なる／外なる）・一本の糸「AI時代における人間性の保護と発展」のいずれにも取り違え・欠落なし。第一声が肯定（「いま、音楽を作ること・聴くことは、歴史上もっとも自由になっています。」）で原則7に適合。個人情報なし。固有名（デミング／スティーブ・ジョブズ／是枝裕和）の記述は原典どおりで事実関係OK。25年余りという年数も原典と一致。SEO要件充足（tags 4件はいずれも推奨語彙）、著者表記・フッター規定どおり。誤字なし。約4,200字。留意2点: ①冒頭で「ようこそ、AtoZ Sound Journal へ」に言及するため同記事を先に公開すること ②言及は本文テキストのみで「(リンク)」プレースホルダーは無し（公開後に実リンク化すると読者に親切）。"
+    },
+    {
+      "source_file": "2026-09-09_bunmei_kaika_gungaku.md",
+      "drive_file_id": "1oDRZBTtlChRuR49zfIdY1wZTIuq0ohcx",
+      "title": "文明開化でやって来たのは、クラシックではなく軍楽だった ― 日本のポップスの意外な起点",
+      "review_report_sent": "2026-10-08",
+      "verdict": "公開推奨（任意の補足3点）",
+      "report_summary": "原則1（営みへのリスペクト）・原則4の実践として密度が高く、通説をひっくり返す構成も読み物として秀逸。第一声が肯定（「日本の音楽には、日本らしい良さが確かにあります。」）。個人情報なし（source_note で講義の一般化を明記）。事実関係は主要論点を全件照合し誤りなし: ペリー艦隊の浦賀来航1853／当時の米国は南北戦争前・奴隷制存続／ジョン・ウィリアム・フェントン（イギリス人軍楽長）が薩摩藩の若者を指導し『君が代』初版を作曲／ウクレレはポルトガル領マデイラ島移民の撥弦楽器起源・ハワイアンコア材・王室の愛顧で普及／演歌の語源は自由民権運動期の「演説歌」／「おっぺけぺー節」はパリでの録音が現存（1900年パリ万博期・現存最古級）／『東京ラプソディ』1936年（昭和11年）歌 藤山一郎・作曲 古賀政男／古賀政男は演歌ブーム以前から活動／1936年→2026年で「90年」。任意の補足提案3点: ①現行『君が代』は林廣守らの旋律にドイツ人フランツ・エッケルトが西洋和声を付けた経緯があるため、「日本人の手で作り直され」に一言添えると更に正確 ②歌詞の該当語は「ニコライの鐘」で、本文の「ニコライ堂」は同じ建物を指す言い換え ③「J-POP」の呼称発生は J-WAVE 開局の1988年とする資料も多く、1989年と併記または「1980年代末」が無難。SEO要件充足、著者表記・フッター準拠。誤字なし。約4,800〜5,000字で文字数目安の上限に近い（許容）。"
+    },
+    {
+      "source_file": "2026-09-09_oni_ni_kanabo_ai_era.md",
+      "drive_file_id": "1rsDApVXyVrWxwFGvCVFd_9RPgo9VsNe5",
+      "title": "「鬼に金棒」の、鬼のほう ― AIの時代に、完成像が先にあるということ",
+      "review_report_sent": "2026-10-08",
+      "verdict": "公開推奨",
+      "report_summary": "原則3（第一言語化）・原則4・原則1が明確に通った記事。第一声が肯定（「AIで曲が作れるようになったこと自体は、わくわくしていい出来事」）。個人情報: source_note に「個別の受講者・課題には触れず、講義パートの論点のみ抽出」と明記され、本文にも受講者が特定できる記述なし——問題なし。事実関係: ポップス史の年代区分（19世紀=楽譜／20世紀=録音／50年代スター／60年代グループ・アイドル／70年代シンセ／80年代ドラムマシン／2000年代DAW普及／2010年代AI研究→2020年代生成）は妥当。「理論は音楽のあとから来た」の整理も原則1と整合。SEO要件充足、著者表記・フッター準拠。誤字なし。約4,200字。軽微（任意）: ①「うまい棒」を実名で挙げて中身に言及（自社の出汁理論の定番例で論旨も商品に肯定的だが、気になる場合は商品名の一般化も可）②「五十年かけて」は発売1979年基準では約47年の概算表現。"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_01_erase_the_music.md",
+      "drive_file_id": "1fdG5hXtlcwgBUqPr73YG02O9mkY1g5SF"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_02_below_zero.md",
+      "drive_file_id": "1kI_t68gTCzmmdzwB5bP6Sm-USa23pV_D"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_03_unnoticed.md",
+      "drive_file_id": "1XCX0439x3QDUDs-BY7rQOYq5D-7ybTpB"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_04_emotion_curve.md",
+      "drive_file_id": "1yamfuGxTomtWR5Pz0l7BgvjDzcT6dOKC"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_05_amplify_not_create_v2.md",
+      "drive_file_id": "1c9HnJT5UX7jMoVqs1Flzb8sAmQHAvujz"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_06_shared_language_v2.md",
+      "drive_file_id": "1rj-wgJ-d8emJps1gmmijLYt2TJotbsDS"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_01_who_is_there.md",
+      "drive_file_id": "1dTSeIuAbg3jWfJT7pcYUvDei1GdfL_ee"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_02_workflow.md",
+      "drive_file_id": "1r1W6RdtoHw9zn3t6ZEfUO_77DM4u4PB_"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_03_spotting.md",
+      "drive_file_id": "1m18qBIzD-fk7XHjDWU6fg5wzL8y7gsn9"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_04_temp_track.md",
+      "drive_file_id": "1wlW_w1XftiwCCqCcnRFqqqX7MsVclNPg"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_05_running_time.md",
+      "drive_file_id": "1vs9uZaMJJnQ_v6mV_xxsirCZ8zx4rZ9R"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_06_dubbing_ma.md",
+      "drive_file_id": "199Rbrq7QKmVF5Ng9sFMvAD4ROFk8S7M-"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_07_stems.md",
+      "drive_file_id": "1V_MxyqdJaSQGL_xCdcw8K9o0u2D7s7nx"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_08_sfx_and_music.md",
+      "drive_file_id": "1HYMJ9LK9TudBVNKQ6OqKidrYKay_X0CV"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_09_media_differences.md",
+      "drive_file_id": "1pda6FmwUkrUbc7LCcDi4_Em9nZaKh0KX"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_10_fifteen_seconds.md",
+      "drive_file_id": "1IPzX7GnB4t53pTZIZEow-EO55oTxW3Wn"
+    },
+    {
+      "source_file": "2026-09-12_film_scoring_p2_11_glossary.md",
+      "drive_file_id": "1pLnNeVqF4mTC5GbQTmB3jpJrdCAh8VuJ"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_01_before_the_witness.md",
+      "drive_file_id": "1AIsIANHNFEItQSVBYKhfrXENI8rN4i7V"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_02_dont_hit_every_move.md",
+      "drive_file_id": "1wK7TAjUJPxA3le0TVRCxKbVQToQjHnc2"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_03_foreshadowing_and_flags.md",
+      "drive_file_id": "1ZM3boTlFdnIuGm8b9LmhNSMHhhjhM6SC"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_04_leitmotif.md",
+      "drive_file_id": "1N8VRr1jWOm58mdLiq8QwhqA4FGVzb9s9"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_05_harmonic_texture.md",
+      "drive_file_id": "1awXIUuKB9SMBDxq4wTgh0YnrMT45PtCC"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_06_thick_or_thin.md",
+      "drive_file_id": "15lcCa36kMR-3uCp997n3VDNnAQVmOuuP"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_07_no_such_thing_as_attack_point.md",
+      "drive_file_id": "1mqXyrQNAbwTOVfbMzEvNgiiqUIoj5OUK"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_08_low_end_acting.md",
+      "drive_file_id": "1iiF9y9Z9ofb2mITvLhL6CrrayO0VKUV6"
+    },
+    {
+      "source_file": "2026-09-13_film_scoring_p3_09_choosing_instruments.md",
+      "drive_file_id": "1pk1yAosEMt4_H7rwm31590aXa01iI_-N"
+    },
+    {
+      "source_file": "2026-09-13_maamaa_shokunin_verbalize_success.md",
+      "drive_file_id": "1cAB1mcKchTMqIZhyge-0udXNqs6T_o1V"
     }
   ]
 }
