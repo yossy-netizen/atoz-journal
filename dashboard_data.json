@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-10-15 09:04 JST",
+ "updated_at": "2026-10-19 09:07 JST",
  "updated_by": "AtoZ Journal 自動投稿",
  "summary": {
   "draft_count": 32
@@ -128,6 +128,11 @@
   }
  ],
  "changelog": [
+  {
+   "date": "2026-10-19",
+   "by": "自動投稿",
+   "event": "定時実行: 公開なし（02-1_完成_公開待ち の現物15件はすべて state.json に公開済み記録あり＝承認済み在庫の払い出し完了済み）。【共通処理A】approvals.json（Dashboard 配下。親を Dashboard→AtoZ_Sound_Journal まで確認し、GBP側 Posts/approvals.json（親: Posts）とは別物であることを確認）の承認13件・修正要望3件はいずれも review_status.json に反映済みで新規取り込みなし（approvals.json の saved_at も 2026-08-25 から変化なし）。【解決ルール】運用ルールは AtoZ_Master/Operations_Manual/Journal/ の最大版 v10（2026-09-10）を名前解決して参照。記録済みIDと現物の突合: 02-1 現物15件と state.json の drive_file_id（15件）、review_status.json の drive_file_id 23件（01-4 配下をファイル名で個別照合）、dashboard_data.json の pending_review リンク8件 — 全件一致で更新不要。01-4 は 2026-10-10 以降の新規・更新ファイルなしのため精査レポート未送付32本・判断待ち8本は前回から変動なし（01-4 の全件再列挙は Drive 検索のページングが同一ページを返して進まなかったため未完。代わりに 現役23本＋旧版5件の現存を個別確認し、新規・更新なしとあわせて在庫数を据え置いた）。公開待ち（02-1・未公開）残0本。要対応: 次回以降の公開には新たな承認が必要（木曜の精査サポート→ダッシュボード承認の流れ）。掃除候補（阿藤さんの手作業・前回から未実施）: 02-1 の公開済み15件（02-2 に控えあり）、01-4 の旧版5件（bass_series_01_v4 / bass_series_02_v4 / bass_series_04_v4 / 2026-09-12_film_scoring_05_amplify_not_create / 同06_shared_language — いずれも現役版が別途存在）。"
+  },
   {
    "date": "2026-10-15",
    "by": "自動投稿",
