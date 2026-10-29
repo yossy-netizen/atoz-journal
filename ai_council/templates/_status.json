@@ -1,0 +1,22 @@
+{
+  "id": "YYYY-MM-DD_slug",
+  "title": "",
+  "type": "weekly",
+  "round": 1,
+  "state": "issued",
+  "issued_at": "",
+  "report_due": "",
+  "assignments": {
+    "baryo": "required",
+    "choun": "required",
+    "chohi": "required",
+    "kanu": "required",
+    "hoto": "none",
+    "kyoi": "none",
+    "komei": "required"
+  },
+  "responses": {},
+  "human_voice": null,
+  "decision": null,
+  "history": []
+}
